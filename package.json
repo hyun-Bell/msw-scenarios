@@ -1,0 +1,57 @@
+{
+  "name": "msw-scenarios",
+  "version": "1.0.0",
+  "description": "A scenario-based mocking library built on msw",
+  "main": "dist/msw-gui.umd.js",
+  "module": "dist/msw-gui.es.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "build": "vite build",
+    "prepare": "pnpm run build",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/msw-gui.git"
+  },
+  "keywords": [
+    "msw",
+    "mocking",
+    "library",
+    "typescript",
+    "scenario-based"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/msw-gui/issues"
+  },
+  "homepage": "https://github.com/yourusername/msw-gui#readme",
+  "peerDependencies": {
+    "msw": "^1.1.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-define-config": "^2.1.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^15.10.0",
+    "prettier": "^3.3.3",
+    "typescript": "^4.5.4",
+    "typescript-eslint": "^8.8.0",
+    "vite": "^4.0.0",
+    "vite-plugin-dts": "^2.0.0"
+  },
+  "dependencies": {
+    "msw": "^1.1.0"
+  }
+}
