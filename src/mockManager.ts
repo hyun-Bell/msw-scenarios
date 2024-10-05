@@ -196,3 +196,21 @@ export function createMockManager<
     removeScenario: mockProfiles.removeScenario,
   };
 }
+
+/**
+ * @param endpoints
+ * @param scenarios
+ * @returns
+ */
+export function defineScenarios<
+  Endpoints extends EndpointList,
+  Scenarios extends ScenarioList<Endpoints>,
+>(endpoints: Endpoints, scenarios: Scenarios): Scenarios {
+  return scenarios;
+}
+
+export function defineEndpoints<Endpoints extends EndpointList>(
+  endpoints: Endpoints
+): Endpoints {
+  return endpoints;
+}
