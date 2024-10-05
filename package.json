@@ -17,7 +17,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/msw-gui.git"
+    "url": "git+https://github.com/manofbackend/msw-scenarios.git"
   },
   "keywords": [
     "msw",
@@ -29,9 +29,9 @@
   "author": "Your Name",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yourusername/msw-gui/issues"
+    "url": "https://github.com/manofbackend/msw-scenarios/issues"
   },
-  "homepage": "https://github.com/yourusername/msw-gui#readme",
+  "homepage": "https://github.com/manofbackend/msw-scenarios#readme",
   "peerDependencies": {
     "msw": "^1.1.0"
   },
