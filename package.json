@@ -1,6 +1,6 @@
 {
   "name": "msw-scenarios",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A scenario-based mocking library built on msw",
   "main": "dist/msw-scenarios.umd.js",
   "module": "dist/msw-scenarios.es.js",
@@ -8,6 +8,7 @@
   "scripts": {
     "build": "vite build",
     "prepare": "pnpm run build",
+    "prepublishOnly": "pnpm run build",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
   },
@@ -26,7 +27,7 @@
     "typescript",
     "scenario-based"
   ],
-  "author": "Your Name",
+  "author": "hyunBell",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/manofbackend/msw-scenarios/issues"
