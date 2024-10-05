@@ -1,6 +1,6 @@
 # msw-scenarios
 
-`msw-scenarios` is a **scenario-based mocking library** built on top of [MSW (Mock Service Worker)](https://mswjs.io/). It allows you to manage and switch between API responses based on predefined scenarios, making it ideal for development and testing environments.
+`msw-scenarios` is a **type-safe**, scenario-based mocking library built on top of [MSW (Mock Service Worker)](https://mswjs.io/). This library allows you to safely manage and switch between API responses based on predefined scenarios with full TypeScript support, ensuring that only valid scenarios and presets are used during development and testing.
 
 > This package was created after watching the WOOWACON 2023 video.  
 > [프론트엔드 모킹 환경에 감칠맛 더하기](https://youtu.be/uiBCcmlJG4U?si=fZFCeQbxCCArA06a)
