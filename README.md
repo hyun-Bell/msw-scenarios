@@ -9,6 +9,7 @@
 
 - **Scenario-based Mocking**: Easily define and switch between multiple API scenarios.
 - **Flexible API Response Management**: Seamlessly manage and switch API responses during development or testing.
+- **Type Guard Enforcement**: Ensures that only valid presets and scenarios are used, preventing runtime errors.
 - **Seamless Integration with MSW**: Works effortlessly with MSW for mocking API requests.
 - **Smooth Transition Between Mock and Real APIs**: Toggle between mocked and real API responses without any friction.
 
@@ -32,7 +33,8 @@ npm install msw-scenarios msw
 
 
 ## Usage
-Defining API Endpoints and Scenarios
+
+### Defining API Endpoints and Scenarios
 Start by defining the API endpoints you want to mock along with the preset responses for each scenario. Then, define various scenarios for these endpoints.
 
 ```typescript
@@ -61,10 +63,10 @@ export const endpoints: EndpointDefinition[] = [
 ];
 ```
 
-Defining Scenarios
+
+### Defining Scenarios
 Next, define the scenarios for the above endpoints. Each scenario maps to a specific API response.
 
-typescript
 
 ```typescript
 import { Scenario } from 'msw-scenarios';
@@ -113,7 +115,33 @@ export const scenarios: Scenario<typeof endpoints>[] = [
   },
 ];
 ```
-Initializing Mocking in Your Application
+
+### Type Guard: Preventing Invalid Scenarios and Presets
+#### One of the strengths of msw-scenarios is its built-in type guard feature, ensuring that only valid presets and scenario names can be used.
+
+Here’s an example:
+```typescript
+mockManager.applyScenario('Get Default Users'); // ✅ Valid scenario
+mockManager.applyScenario('Invalid Scenario'); // ❌ TypeScript error: Argument of type '"Invalid Scenario"' is not assignable.
+```
+
+Similarly, when you define presets for an endpoint, TypeScript will enforce the use of only valid presets:
+```typescript
+mockManager.useMock({
+    method: 'GET',
+    path: '/api/users',
+    preset: 'Default Response', // ✅ Valid preset
+});
+
+mockManager.useMock({
+    method: 'GET',
+    path: '/api/users',
+    preset: 'Invalid Response', // ❌ TypeScript error: '"Invalid Response"' is not assignable to type.
+});
+````
+These type guards help catch errors during development, ensuring that invalid scenarios or presets do not slip through into production or cause unexpected runtime errors.
+
+### Initializing Mocking in Your Application
 Now, initialize the mock service worker and apply the scenarios in your application.
 
 ```typescript
@@ -135,7 +163,8 @@ worker.start({
 // Apply the desired scenario
 mockManager.applyScenario('Get Default Users');
 ```
-Applying Different Scenarios
+
+### Applying Different Scenarios
 You can easily switch between different API scenarios depending on your testing or development needs:
 
 ```typescript
@@ -145,7 +174,8 @@ mockManager.applyScenario('Create User Success');
 // To reset the scenario, you can switch back or use the real API
 mockManager.applyScenario('Get Default Users');
 ```
-Using Real APIs
+
+### Using Real APIs
 If you need to use the real API for a specific route, you can do so dynamically:
 
 ```typescript
