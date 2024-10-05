@@ -42,9 +42,9 @@ npm install msw-scenarios msw
 Start by defining the API endpoints you want to mock along with the preset responses for each scenario. Then, define various scenarios for these endpoints.
 
 ```typescript
-import { EndpointDefinition } from 'msw-scenarios';
+import { defineEndpoints } from 'msw-scenarios';
 
-export const endpoints: EndpointDefinition[] = [
+export const endpoints = defineEndpoints([
   {
     method: 'GET',
     path: '/api/users',
@@ -64,7 +64,7 @@ export const endpoints: EndpointDefinition[] = [
         res(ctx.status(400), ctx.json({ error: 'User creation failed' })),
     },
   },
-];
+] as const);
 ```
 
 
@@ -73,10 +73,10 @@ Next, define the scenarios for the above endpoints. Each scenario maps to a spec
 
 
 ```typescript
-import { Scenario } from 'msw-scenarios';
+import { Scenario, defineScenarios } from 'msw-scenarios';
 import { endpoints } from './endpoints';
 
-export const scenarios: Scenario<typeof endpoints>[] = [
+export const scenarios = defineScenarios(endpoints, [
   {
     name: 'Get Default Users',
     actions: (action) => {
@@ -117,7 +117,7 @@ export const scenarios: Scenario<typeof endpoints>[] = [
       });
     },
   },
-];
+] as const);
 ```
 
 ### Type Guard: Preventing Invalid Scenarios and Presets
