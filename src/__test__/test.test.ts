@@ -5,9 +5,14 @@ import { http, extendHandlers } from '..';
 const server = setupServer();
 const BASE_URL = 'http://localhost';
 
+interface TestResponse {
+  message: string;
+  count?: number;
+}
+
 describe('MSW Preset Extension', () => {
   beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'error' }); // 처리되지 않은 요청에 대해 에러를 발생시킴
+    server.listen({ onUnhandledRequest: 'error' });
   });
 
   afterEach(() => {
@@ -18,88 +23,89 @@ describe('MSW Preset Extension', () => {
     server.close();
   });
 
-  it('should return default response when no preset is selected', async () => {
-    const { handlers } = extendHandlers(
-      http.get('http://localhost/test', () => {
-        return new HttpResponse(JSON.stringify({ message: 'default' }), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      })
-    );
+  const createTestHandler = <P extends string>(path: P) => {
+    return http.get<TestResponse, P>(path, () => {
+      return new HttpResponse(JSON.stringify({ message: 'default' }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+  };
 
-    server.use(...handlers);
-
-    const response = await fetch(`${BASE_URL}/test`);
+  const setupTest = async (path: string) => {
+    const response = await fetch(path);
     const data = await response.json();
+    return { response, data };
+  };
 
-    expect(data).toEqual({ message: 'default' });
+  describe('Default Response', () => {
+    it('should return default response when no preset is selected', async () => {
+      const fullPath = `${BASE_URL}/test`;
+      const { handlers } = extendHandlers(createTestHandler(fullPath));
+
+      server.use(...handlers);
+
+      const { data } = await setupTest(fullPath);
+      expect(data).toEqual({ message: 'default' });
+    });
   });
 
-  it('should return preset response when preset is selected', async () => {
-    const { handlers, useMock } = extendHandlers(
-      http
-        .get('http://localhost/test', () => {
-          return new HttpResponse(JSON.stringify({ message: 'default' }), {
-            headers: { 'Content-Type': 'application/json' },
-          });
-        })
-        .presets(
+  describe('Preset Response', () => {
+    it('should return preset response when preset is selected', async () => {
+      const fullPath = `${BASE_URL}/test`;
+      const handlers = [
+        createTestHandler(fullPath).presets(
           {
-            label: 'Custom Response',
+            label: 'preset1',
             status: 200,
             response: { message: 'preset' },
           },
           {
-            label: 'Another Response',
+            label: 'preset2',
             status: 200,
             response: { message: 'another' },
           }
-        )
-    );
+        ),
+      ];
 
-    server.use(...handlers);
+      const extended = extendHandlers(...handlers);
 
-    useMock({
-      method: 'GET',
-      path: 'http://localhost/test',
-      preset: 'Another Response',
+      server.use(...handlers);
+
+      extended.useMock({
+        method: 'get',
+        path: fullPath,
+        preset: 'preset2',
+      });
+
+      const { data } = await setupTest(fullPath);
+      expect(data).toEqual({ message: 'another' });
     });
 
-    const response = await fetch(`${BASE_URL}/test`);
-    const data = await response.json();
-
-    expect(data).toEqual({ message: 'another' });
-  });
-
-  it('should apply override function to preset response', async () => {
-    const { handlers, useMock } = extendHandlers(
-      http
-        .get('http://localhost/test', () => {
-          return new HttpResponse(JSON.stringify({ message: 'default' }), {
-            headers: { 'Content-Type': 'application/json' },
-          });
-        })
-        .presets({
-          label: 'Custom Response',
+    it('should apply override function to preset response', async () => {
+      const fullPath = `${BASE_URL}/test`;
+      const handlers = [
+        createTestHandler(fullPath).presets({
+          label: 'withCount',
           status: 200,
           response: { message: 'preset', count: 0 },
-        })
-    );
+        }),
+      ];
 
-    server.use(...handlers);
+      const extended = extendHandlers(...handlers);
 
-    useMock({
-      method: 'GET',
-      path: 'http://localhost/test',
-      preset: 'Custom Response',
-      override: ({ data }) => {
-        data.count = 42;
-      },
+      server.use(...handlers);
+
+      extended.useMock({
+        method: 'get',
+        path: fullPath,
+        preset: 'withCount',
+        override: ({ data }) => {
+          data.count = 42;
+        },
+      });
+
+      const { data } = await setupTest(fullPath);
+      expect(data).toEqual({ message: 'preset', count: 42 });
     });
-
-    const response = await fetch(`${BASE_URL}/test`);
-    const data = await response.json();
-
-    expect(data).toEqual({ message: 'preset', count: 42 });
   });
 });
