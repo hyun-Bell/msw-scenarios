@@ -1,12 +1,43 @@
-// Stores to keep track of presets and selected responses.
-export const presetStore = new Map<
-  string,
-  { label: string; status: number; response: any }[]
->();
+import { create } from 'zustand';
+import { produce } from 'immer';
+import { Preset, SelectedPreset } from './types';
 
-export const selectedPresetStore = new Map<string, SelectedPreset>();
-
-export type SelectedPreset<T = any> = {
-  preset: { label: string; status: number; response: T };
-  override?: (draft: { data: T }) => void;
+type PresetState = {
+  presets: Record<string, Preset[]>;
+  setPresets: (path: string, presets: Preset[]) => void;
+  getPresets: (path: string) => Preset[] | undefined;
+  clearPresets: () => void;
 };
+
+type SelectedPresetState = {
+  selected: Record<string, SelectedPreset>;
+  setSelected: (path: string, preset: SelectedPreset) => void;
+  getSelected: (path: string) => SelectedPreset | undefined;
+  clearSelected: () => void;
+};
+
+export const usePresetStore = create<PresetState>((set, get) => ({
+  presets: {},
+  setPresets: (path, presets) =>
+    set(
+      produce((state) => {
+        state.presets[path] = presets;
+      })
+    ),
+  getPresets: (path) => get().presets[path],
+  clearPresets: () => set({ presets: {} }),
+}));
+
+export const useSelectedPresetStore = create<SelectedPresetState>(
+  (set, get) => ({
+    selected: {},
+    setSelected: (path, preset) =>
+      set(
+        produce((state) => {
+          state.selected[path] = preset;
+        })
+      ),
+    getSelected: (path) => get().selected[path],
+    clearSelected: () => set({ selected: {} }),
+  })
+);

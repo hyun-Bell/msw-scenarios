@@ -1,4 +1,3 @@
-// Main HTTP handler with preset capabilities.
 import { produce } from 'immer';
 import {
   HttpResponse,
@@ -6,17 +5,15 @@ import {
   PathParams,
   ResponseResolver,
 } from 'msw';
-import { presetStore, SelectedPreset, selectedPresetStore } from './stores';
+import { presetActions, selectedPresetActions } from './store/stores';
 import {
   Http,
   HttpMethodHandler,
   HttpMethodLiteral,
   PresetHandler,
+  SelectedPreset,
 } from './types';
 
-/**
- * Proxy wrapping original HTTP methods to add preset capabilities.
- */
 export const http = new Proxy(originalHttp, {
   get<K extends HttpMethodLiteral>(
     target: typeof originalHttp,
@@ -32,7 +29,7 @@ export const http = new Proxy(originalHttp, {
       resolver: ResponseResolver<any, PathParams<string>>
     ): PresetHandler<T, K, P, string, T> => {
       const wrappedResolver: typeof resolver = async (info) => {
-        const selected = selectedPresetStore.get(path) as
+        const selected = selectedPresetActions.getSelected(path) as
           | SelectedPreset<T>
           | undefined;
 
@@ -70,7 +67,7 @@ export const http = new Proxy(originalHttp, {
         ...presets: { label: Labels; status: number; response: Response }[]
       ) => {
         if (presets.length > 0) {
-          presetStore.set(path, presets);
+          presetActions.setPresets(path, presets);
           handler._presets = presets as any;
           (handler as any)._labels = presets[0].label;
         }

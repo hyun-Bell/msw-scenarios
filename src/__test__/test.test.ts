@@ -1,4 +1,3 @@
-// Unit tests for the package.
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { http, extendHandlers } from '..';

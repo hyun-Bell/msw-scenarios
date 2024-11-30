@@ -115,3 +115,9 @@ export type SelectedPreset<T = any> = {
   preset: { label: string; status: number; response: T };
   override?: (draft: { data: T }) => void;
 };
+
+export type Preset = {
+  label: string;
+  status: number;
+  response: any;
+};

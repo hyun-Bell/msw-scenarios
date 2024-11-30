@@ -1,6 +1,5 @@
-// Utility for extending handlers with useMock functionality.
-import { PresetHandler, ExtendedHandlers, UseMockOptions } from './types';
-import { selectedPresetStore, SelectedPreset } from './stores';
+import { selectedPresetActions } from './store/stores';
+import { ExtendedHandlers, PresetHandler, SelectedPreset } from './types';
 
 export function extendHandlers<H extends readonly PresetHandler[]>(
   ...handlers: H
@@ -35,7 +34,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         throw new Error(`Preset not found: ${options.preset}`);
       }
 
-      selectedPresetStore.set(options.path, {
+      selectedPresetActions.setSelected(options.path, {
         preset,
         override: options.override,
       } as SelectedPreset);
