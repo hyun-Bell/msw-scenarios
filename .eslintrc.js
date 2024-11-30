@@ -1,4 +1,5 @@
 module.exports = {
+  root: true,
   env: {
     browser: true,
     es2021: true,
@@ -7,25 +8,23 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended', // Prettier와의 통합을 원할 경우
+    'plugin:prettier/recommended',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: ['./tsconfig.json'], // TypeScript 설정 파일 경로
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname,
   },
-  plugins: [
-    '@typescript-eslint',
-    'prettier', // Prettier와의 통합을 원할 경우
-  ],
+  plugins: ['@typescript-eslint', 'prettier'],
   rules: {
-    'prettier/prettier': 'error', // Prettier 형식 오류를 ESLint 오류로 표시
-    'no-unused-vars': 'off', // TypeScript에서 처리하므로 비활성화
-    '@typescript-eslint/no-unused-vars': 'off',
+    'prettier/prettier': 'error',
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': 'warn',
     '@typescript-eslint/no-explicit-any': 'off',
     semi: ['error', 'always'],
     quotes: ['error', 'single'],
-    // 추가 규칙을 여기에 작성
   },
+  ignorePatterns: ['dist', '.eslintrc.js'],
 };
