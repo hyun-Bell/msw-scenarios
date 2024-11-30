@@ -577,4 +577,161 @@ describe('MSW Preset Extension', () => {
       });
     });
   });
+
+  describe('Profile Management', () => {
+    it('should notify profile subscribers when switching profiles', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+      const mockProfileSubscriber = jest.fn();
+
+      const profiles = handlers.createMockProfiles(
+        {
+          name: 'Profile A',
+          actions: ({ useMock }) => {
+            useMock({
+              method: 'get',
+              path: '/api/users',
+              preset: 'Empty Users',
+            });
+          },
+        },
+        {
+          name: 'Profile B',
+          actions: ({ useMock }) => {
+            useMock({
+              method: 'get',
+              path: '/api/users',
+              preset: 'Multiple Users',
+            });
+          },
+        }
+      );
+
+      profiles.subscribeToChanges(mockProfileSubscriber);
+
+      // Initial state
+      expect(mockProfileSubscriber).not.toHaveBeenCalled();
+      expect(profiles.getCurrentProfile()).toBeNull();
+
+      // Switch to Profile A
+      profiles.useMock('Profile A');
+      expect(mockProfileSubscriber).toHaveBeenCalledWith('Profile A');
+      expect(profiles.getCurrentProfile()).toBe('Profile A');
+
+      // Switch to Profile B
+      profiles.useMock('Profile B');
+      expect(mockProfileSubscriber).toHaveBeenCalledWith('Profile B');
+      expect(profiles.getCurrentProfile()).toBe('Profile B');
+
+      // Reset profiles
+      profiles.reset();
+      expect(mockProfileSubscriber).toHaveBeenCalledWith(null);
+      expect(profiles.getCurrentProfile()).toBeNull();
+
+      expect(mockProfileSubscriber).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle multiple profile subscribers', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+      const subscriber1 = jest.fn();
+      const subscriber2 = jest.fn();
+
+      const profiles = handlers.createMockProfiles({
+        name: 'Test Profile',
+        actions: () => {},
+      });
+
+      profiles.subscribeToChanges(subscriber1);
+      profiles.subscribeToChanges(subscriber2);
+
+      profiles.useMock('Test Profile');
+
+      expect(subscriber1).toHaveBeenCalledWith('Test Profile');
+      expect(subscriber2).toHaveBeenCalledWith('Test Profile');
+    });
+
+    it('should properly unsubscribe profile subscribers', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+      const mockSubscriber = jest.fn();
+
+      const profiles = handlers.createMockProfiles({
+        name: 'Test Profile',
+        actions: () => {},
+      });
+
+      const unsubscribe = profiles.subscribeToChanges(mockSubscriber);
+      unsubscribe();
+
+      profiles.useMock('Test Profile');
+      expect(mockSubscriber).not.toHaveBeenCalled();
+    });
+
+    it('should handle profile subscriber errors gracefully', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      const errorSubscriber = () => {
+        throw new Error('Subscriber error');
+      };
+      const normalSubscriber = jest.fn();
+
+      const profiles = handlers.createMockProfiles({
+        name: 'Test Profile',
+        actions: () => {},
+      });
+
+      profiles.subscribeToChanges(errorSubscriber);
+      profiles.subscribeToChanges(normalSubscriber);
+
+      profiles.useMock('Test Profile');
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error in profile subscriber:',
+        expect.any(Error)
+      );
+      expect(normalSubscriber).toHaveBeenCalledWith('Test Profile');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should notify both handlers and profile subscribers when switching profiles', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+      const handlerSubscriber = jest.fn();
+      const profileSubscriber = jest.fn();
+
+      const profiles = handlers.createMockProfiles({
+        name: 'Test Profile',
+        actions: ({ useMock }) => {
+          useMock({
+            method: 'get',
+            path: '/api/users',
+            preset: 'Empty Users',
+          });
+        },
+      });
+
+      handlers.subscribeToChanges(handlerSubscriber);
+      profiles.subscribeToChanges(profileSubscriber);
+
+      profiles.useMock('Test Profile');
+
+      expect(profileSubscriber).toHaveBeenCalledWith('Test Profile');
+      expect(handlerSubscriber).toHaveBeenCalledWith({
+        status: [
+          {
+            method: 'get',
+            path: '/api/users',
+            currentPreset: 'Empty Users',
+          },
+        ],
+        currentProfile: 'Test Profile',
+      });
+    });
+  });
 });

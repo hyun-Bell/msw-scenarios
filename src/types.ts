@@ -188,6 +188,9 @@ export interface ProfileManager<
   getAvailableProfiles: () => Array<Profiles[number]['name']>;
   getCurrentProfile: () => Profiles[number]['name'] | null;
   reset: () => void;
+  subscribeToChanges: (
+    callback: (currentProfile: Profiles[number]['name'] | null) => void
+  ) => () => void;
 }
 
 export type SelectedPreset<T = any> = {

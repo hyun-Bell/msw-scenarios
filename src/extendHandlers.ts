@@ -6,6 +6,7 @@ import type {
   PresetHandler,
   ProfileManager,
   UseMockOptions,
+  MockingStatus,
 } from './types';
 
 type HandlerState = {
@@ -17,17 +18,7 @@ type HandlerState = {
   };
 };
 
-type Subscriber = (state: {
-  status: Array<{
-    path: string;
-    method: string;
-    currentPreset: string | null;
-  }>;
-  currentProfile: string | null;
-}) => void;
-
 const handlerStates = new WeakMap<PresetHandler, HandlerState>();
-const subscribers = new Set<Subscriber>();
 
 function getHandlerState(handler: PresetHandler) {
   if (!handlerStates.has(handler)) {
@@ -36,34 +27,71 @@ function getHandlerState(handler: PresetHandler) {
   return handlerStates.get(handler)!;
 }
 
-function notifySubscribers(
-  handlers: readonly PresetHandler[],
-  currentProfile: string | null
-) {
-  const state = {
-    status: handlers
-      .map((handler) => ({
-        path: handler._path,
-        method: handler._method,
-        currentPreset: getHandlerState(handler).currentPreset?.label ?? null,
-      }))
-      .filter((status) => status.currentPreset !== null),
-    currentProfile,
-  };
-
-  for (const subscriber of subscribers) {
-    try {
-      subscriber(state);
-    } catch (error) {
-      console.error('Error in mock state subscriber:', error);
-    }
-  }
-}
-
 export function extendHandlers<H extends readonly PresetHandler[]>(
   ...handlers: H
 ): ExtendedHandlers<H> {
-  let currentProfile: string | null = null;
+  const subscribers = new Set<
+    (state: { status: MockingStatus[]; currentProfile: string | null }) => void
+  >();
+  let rootCurrentProfile: string | null = null;
+
+  // 핸들러 메서드 확장
+  handlers.forEach((handler) => {
+    Object.defineProperties(handler, {
+      getCurrentPreset: {
+        value: () => {
+          return getHandlerState(handler).currentPreset;
+        },
+        enumerable: true,
+      },
+      reset: {
+        value: () => {
+          const state = getHandlerState(handler);
+          state.currentPreset = undefined;
+          notifySubscribers(handlers, rootCurrentProfile, subscribers);
+        },
+        enumerable: true,
+      },
+    });
+  });
+
+  function notifySubscribers(
+    handlers: readonly PresetHandler[],
+    currentProfile: string | null,
+    subscribers: Set<
+      (state: {
+        status: MockingStatus[];
+        currentProfile: string | null;
+      }) => void
+    >
+  ) {
+    const state = {
+      status: handlers
+        .map((handler) => ({
+          path: handler._path,
+          method: handler._method,
+          currentPreset: getHandlerState(handler).currentPreset?.label ?? null,
+        }))
+        .filter((status) => status.currentPreset !== null),
+      currentProfile,
+    };
+
+    for (const subscriber of subscribers) {
+      try {
+        subscriber(state);
+      } catch (error) {
+        console.error('Error in mock state subscriber:', error);
+      }
+    }
+  }
+
+  function resetAllHandlers() {
+    handlers.forEach((handler) => {
+      const state = getHandlerState(handler);
+      state.currentPreset = undefined;
+    });
+    notifySubscribers(handlers, rootCurrentProfile, subscribers);
+  }
 
   const useMockFunction = <
     M extends ExtractMethod<H[number]>,
@@ -90,7 +118,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       override: options.override,
     };
 
-    notifySubscribers(handlers, currentProfile);
+    notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
 
   const useRealAPIFunction = <
@@ -111,38 +139,8 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     const state = getHandlerState(handler);
     state.currentPreset = undefined;
 
-    notifySubscribers(handlers, currentProfile);
+    notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
-
-  const resetAllHandlers = () => {
-    handlers.forEach((handler) => {
-      const state = getHandlerState(handler);
-      state.currentPreset = undefined;
-    });
-    currentProfile = null;
-    notifySubscribers(handlers, currentProfile);
-  };
-
-  // 핸들러에 확장 메서드 추가
-  handlers.forEach((handler) => {
-    Object.defineProperties(handler, {
-      getCurrentPreset: {
-        value: () => {
-          const state = getHandlerState(handler);
-          return state.currentPreset;
-        },
-        enumerable: true,
-      },
-      reset: {
-        value: () => {
-          const state = getHandlerState(handler);
-          state.currentPreset = undefined;
-          notifySubscribers(handlers, currentProfile);
-        },
-        enumerable: true,
-      },
-    });
-  });
 
   return {
     handlers,
@@ -161,10 +159,10 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         .filter((status) => status.currentPreset !== null);
     },
     reset: resetAllHandlers,
-    subscribeToChanges: (subscriber: Subscriber) => {
-      subscribers.add(subscriber);
+    subscribeToChanges: (callback) => {
+      subscribers.add(callback);
       return () => {
-        subscribers.delete(subscriber);
+        subscribers.delete(callback);
       };
     },
     createMockProfiles: <
@@ -174,9 +172,26 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     >(
       ...profiles: Profiles
     ): ProfileManager<Profiles> => {
+      let currentProfile: Profiles[number]['name'] | null = null;
+      const profileSubscribers = new Set<
+        (currentProfile: Profiles[number]['name'] | null) => void
+      >();
+
+      function notifyProfileSubscribers(
+        profile: Profiles[number]['name'] | null
+      ) {
+        for (const subscriber of profileSubscribers) {
+          try {
+            subscriber(profile);
+          } catch (error) {
+            console.error('Error in profile subscriber:', error);
+          }
+        }
+      }
+
       return {
         profiles,
-        useMock(profileName: Profiles[number]['name']) {
+        useMock(profileName) {
           const profile = profiles.find((p) => p.name === profileName);
           if (!profile) {
             throw new Error(`Profile not found: ${profileName}`);
@@ -184,17 +199,32 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
 
           resetAllHandlers();
           currentProfile = profileName;
+          rootCurrentProfile = profileName;
 
           profile.actions({
             handlers,
             useMock: useMockFunction,
             useRealAPI: useRealAPIFunction,
           });
+
+          notifyProfileSubscribers(currentProfile);
+          notifySubscribers(handlers, currentProfile, subscribers);
         },
         getAvailableProfiles: () => profiles.map((p) => p.name),
-        getCurrentProfile: () =>
-          currentProfile as Profiles[number]['name'] | null,
-        reset: resetAllHandlers,
+        getCurrentProfile: () => currentProfile,
+        reset: () => {
+          resetAllHandlers();
+          currentProfile = null;
+          rootCurrentProfile = null;
+          notifyProfileSubscribers(null);
+          notifySubscribers(handlers, null, subscribers);
+        },
+        subscribeToChanges: (callback) => {
+          profileSubscribers.add(callback);
+          return () => {
+            profileSubscribers.delete(callback);
+          };
+        },
       };
     },
   };
