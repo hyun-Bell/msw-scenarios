@@ -25,6 +25,8 @@ export interface PresetHandler<
   _responseType: T;
   _presets: { label: L; status: number; response: R }[];
   _labels: L;
+  getCurrentPreset: () => { label: L; status: number; response: R } | undefined;
+  reset: () => void;
 }
 
 export type HttpMethodHandler<M extends HttpMethodLiteral> = <
@@ -139,7 +141,6 @@ export interface MockProfileManager<
   getAvailableProfiles: () => Array<Profiles[number]['name']>;
   getCurrentProfile: () => Profiles[number]['name'] | null;
 }
-
 export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
   handlers: H;
   useMock: <
@@ -155,13 +156,38 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
     method: M;
     path: P;
   }) => void;
+  getCurrentStatus: () => Array<{
+    path: string;
+    method: string;
+    currentPreset: string | null;
+  }>;
+  reset: () => void;
+  subscribeToChanges: (
+    subscriber: (state: {
+      status: Array<{
+        path: string;
+        method: string;
+        currentPreset: string | null;
+      }>;
+      currentProfile: string | null;
+    }) => void
+  ) => () => void;
   createMockProfiles: <
     Name extends string,
     Profile extends MockProfile<H, Name>,
     Profiles extends readonly [Profile, ...Profile[]],
   >(
     ...profiles: Profiles
-  ) => MockProfileManager<Profiles>;
+  ) => ProfileManager<Profiles>;
+}
+export interface ProfileManager<
+  Profiles extends readonly MockProfile<any, any>[],
+> {
+  profiles: Profiles;
+  useMock: (profileName: Profiles[number]['name']) => void;
+  getAvailableProfiles: () => Array<Profiles[number]['name']>;
+  getCurrentProfile: () => Profiles[number]['name'] | null;
+  reset: () => void;
 }
 
 export type SelectedPreset<T = any> = {
