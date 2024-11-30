@@ -24,7 +24,7 @@ describe('MSW Preset Extension', () => {
   });
 
   const createTestHandler = <P extends string>(path: P) => {
-    return http.get<TestResponse, P>(path, () => {
+    return http.get(path, () => {
       return new HttpResponse(JSON.stringify({ message: 'default' }), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -87,7 +87,7 @@ describe('MSW Preset Extension', () => {
         createTestHandler(fullPath).presets({
           label: 'withCount',
           status: 200,
-          response: { message: 'preset', count: 0 },
+          response: { message: 'preset', count: 0, a: 5 },
         }),
       ];
 
@@ -101,6 +101,7 @@ describe('MSW Preset Extension', () => {
         preset: 'withCount',
         override: ({ data }) => {
           data.count = 42;
+          data.a = 10;
         },
       });
 
