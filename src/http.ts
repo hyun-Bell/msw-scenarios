@@ -30,7 +30,7 @@ export const http = new Proxy(originalHttp, {
       resolver: ResponseResolver<any, PathParams<string>>
     ): PresetHandler<T, K, P, string, T> => {
       const wrappedResolver: typeof resolver = async (info) => {
-        const selected = selectedPresetActions.getSelected(path) as
+        const selected = selectedPresetActions.getSelected(method, path) as
           | SelectedPreset<T>
           | undefined;
 

@@ -102,8 +102,6 @@ export interface UseMockOptions<
   }) => void;
 }
 
-// src/stores.ts
-// Stores to keep track of presets and selected responses.
 export const presetStore = new Map<
   string,
   { label: string; status: number; response: any }[]
@@ -115,6 +113,11 @@ export type SelectedPreset<T = any> = {
   preset: { label: string; status: number; response: T };
   override?: (draft: { data: T }) => void;
 };
+
+export interface SelectedPresetState {
+  selected: Record<string, SelectedPreset>;
+  currentProfile: string | null;
+}
 
 export type Preset = {
   label: string;
@@ -163,8 +166,56 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
     Profiles extends readonly [Profile, ...Profile[]],
   >(
     ...profiles: Profiles
-  ) => {
-    useMock: (profileName: Profiles[number]['name']) => void;
-    profiles: Profiles;
-  };
+  ) => MockProfileManager<Profiles>;
+  // Utility methods
+  getRegisteredHandlers: () => Array<HandlerInfo<H[number]>>;
+  getCurrentMockingStatus: () => Array<MockingStatus>;
+  subscribeToChanges: (
+    callback: (status: {
+      mockingStatus: Array<MockingStatus>;
+      currentProfile: string | null;
+    }) => void
+  ) => () => void;
+}
+
+export interface HandlerInfo<H extends PresetHandler> {
+  method: H['_method'];
+  path: H['_path'];
+  presets: Array<{
+    label: H['_labels'];
+    status: number;
+    response: H['_responseType'];
+  }>;
+}
+
+export interface MockingStatus {
+  path: string;
+  method: string;
+  currentPreset: string | null;
+}
+
+export interface MockProfileManager<
+  Profiles extends readonly MockProfile<any, any>[],
+> {
+  profiles: Profiles;
+  useMock: (profileName: Profiles[number]['name']) => void;
+  getAvailableProfiles: () => Array<Profiles[number]['name']>;
+  getCurrentProfile: () => Profiles[number]['name'] | null;
+}
+
+export interface MockingState {
+  getCurrentStatus: () => Array<MockingStatus>;
+  getCurrentProfile: () => string | null;
+  subscribeToChanges: (
+    callback: (state: {
+      mockingStatus: Array<MockingStatus>;
+      currentProfile: string | null;
+    }) => void
+  ) => () => void;
+  resetAll: () => void;
+  resetEndpoint: (method: string, path: string) => void;
+  getEndpointState: (
+    method: string,
+    path: string
+  ) => SelectedPreset | undefined;
 }

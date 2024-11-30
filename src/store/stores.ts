@@ -18,12 +18,10 @@ export interface PresetState {
 
 export interface SelectedPresetState {
   selected: Record<string, SelectedPreset>;
+  currentProfile: string | null;
 }
 
 export const presetStore = createStore<PresetState>({ presets: {} });
-export const selectedPresetStore = createStore<SelectedPresetState>({
-  selected: {},
-});
 
 export const presetActions = {
   setPresets: (path: string, presets: Preset[]) => {
@@ -37,24 +35,49 @@ export const presetActions = {
   clearPresets: () => presetStore.setState({ presets: {} }),
 };
 
+export const selectedPresetStore = createStore<SelectedPresetState>({
+  selected: {},
+  currentProfile: null,
+});
+
 export const selectedPresetActions = {
-  setSelected: (path: string, preset: SelectedPreset) => {
+  setSelected: (method: string, path: string, preset: SelectedPreset) => {
+    const key = `${method}:${path}`;
     selectedPresetStore.setState(
       produce((state: SelectedPresetState) => {
-        state.selected[path] = preset;
+        state.selected[key] = preset;
       })
     );
   },
-  getSelected: (path: string) => selectedPresetStore.getState().selected[path],
-  clearSelected: (path?: string) => {
-    if (path) {
-      selectedPresetStore.setState(
-        produce((state: SelectedPresetState) => {
-          delete state.selected[path];
-        })
-      );
-    } else {
-      selectedPresetStore.setState({ selected: {} });
-    }
+  getSelected: (method: string, path: string) => {
+    const key = `${method}:${path}`;
+    return selectedPresetStore.getState().selected[key];
   },
+  clearSelected: (method?: string, path?: string) => {
+    selectedPresetStore.setState(
+      produce((state: SelectedPresetState) => {
+        if (method && path) {
+          const key = `${method}:${path}`;
+          delete state.selected[key];
+        } else {
+          state.selected = {};
+          state.currentProfile = null;
+        }
+      })
+    );
+  },
+  clearAll: () => {
+    selectedPresetStore.setState({
+      selected: {},
+      currentProfile: null,
+    });
+  },
+  setCurrentProfile: (profileName: string | null) => {
+    selectedPresetStore.setState(
+      produce((state: SelectedPresetState) => {
+        state.currentProfile = profileName;
+      })
+    );
+  },
+  getCurrentProfile: () => selectedPresetStore.getState().currentProfile,
 };

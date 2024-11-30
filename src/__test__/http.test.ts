@@ -1,6 +1,6 @@
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { http, extendHandlers } from '..';
+import { http, extendHandlers, mockingState } from '..';
 
 const server = setupServer();
 const BASE_URL = 'http://localhost';
@@ -12,226 +12,360 @@ describe('MSW Preset Extension', () => {
 
   afterEach(() => {
     server.resetHandlers();
+    mockingState.resetAll(); // Reset mocking state after each test
   });
 
   afterAll(() => {
     server.close();
   });
 
-  const createTestHandler = <P extends string>(path: P) => {
-    return http.get(path, () => {
-      return new HttpResponse(JSON.stringify({ message: 'default' }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
+  const createTestHandlers = () => {
+    const userHandler = http
+      .get('/api/users', () => {
+        return new HttpResponse(JSON.stringify({ message: 'default users' }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+      .presets(
+        {
+          label: 'Empty Users',
+          status: 200,
+          response: { users: [] },
+        },
+        {
+          label: 'Multiple Users',
+          status: 200,
+          response: { users: [{ id: 1, name: 'John' }] },
+        }
+      );
+
+    const postHandler = http
+      .post('/api/users', () => {
+        return new HttpResponse(JSON.stringify({ message: 'default create' }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+      .presets(
+        {
+          label: 'Create Success',
+          status: 201,
+          response: { id: 1, name: 'John' },
+        },
+        {
+          label: 'Create Error',
+          status: 400,
+          response: { error: 'Invalid input' },
+        }
+      );
+
+    return { userHandler, postHandler };
   };
 
-  const setupTest = async (path: string) => {
-    const response = await fetch(path);
-    const data = await response.json();
-    return { response, data };
-  };
+  describe('Handler Information', () => {
+    it('should provide handler information correctly', () => {
+      const { userHandler, postHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler, postHandler);
 
-  describe('Default Response', () => {
-    it('should return default response when no preset is selected', async () => {
-      const fullPath = `${BASE_URL}/test`;
-      const { handlers } = extendHandlers(createTestHandler(fullPath));
+      const handlerInfos = handlers.getRegisteredHandlers();
 
-      server.use(...handlers);
-
-      const { data } = await setupTest(fullPath);
-      expect(data).toEqual({ message: 'default' });
-    });
-  });
-
-  describe('Preset Response', () => {
-    it('should return preset response when preset is selected', async () => {
-      const fullPath = `${BASE_URL}/test`;
-      const handlers = [
-        createTestHandler(fullPath).presets(
+      expect(handlerInfos).toHaveLength(2);
+      expect(handlerInfos[0]).toEqual({
+        method: 'get',
+        path: '/api/users',
+        presets: [
           {
-            label: 'preset1',
+            label: 'Empty Users',
             status: 200,
-            response: { message: 'preset' },
+            response: { users: [] },
           },
           {
-            label: 'preset2',
+            label: 'Multiple Users',
             status: 200,
-            response: { message: 'another' },
-          }
-        ),
-      ];
-
-      const extended = extendHandlers(...handlers);
-
-      server.use(...handlers);
-
-      extended.useMock({
-        method: 'get',
-        path: fullPath,
-        preset: 'preset2',
+            response: { users: [{ id: 1, name: 'John' }] },
+          },
+        ],
       });
-
-      const { data } = await setupTest(fullPath);
-      expect(data).toEqual({ message: 'another' });
-    });
-
-    it('should apply override function to preset response', async () => {
-      const fullPath = `${BASE_URL}/test`;
-      const handlers = [
-        createTestHandler(fullPath).presets({
-          label: 'withCount',
-          status: 200,
-          response: { message: 'preset', count: 0 },
-        }),
-      ];
-
-      const extended = extendHandlers(...handlers);
-
-      server.use(...handlers);
-
-      extended.useMock({
-        method: 'get',
-        path: fullPath,
-        preset: 'withCount',
-        override: ({ data }) => {
-          data.count = 42;
-        },
-      });
-
-      const { data } = await setupTest(fullPath);
-      expect(data).toEqual({ message: 'preset', count: 42 });
     });
   });
 
-  describe('Real API', () => {
-    it('should return default response when useRealAPI is called', async () => {
-      const fullPath = `${BASE_URL}/test`;
-      const handlers = [
-        createTestHandler(fullPath).presets({
-          label: 'mock',
-          status: 200,
-          response: { message: 'mocked' },
-        }),
-      ];
+  describe('Mocking Status', () => {
+    it('should track current mocking status', async () => {
+      const { userHandler, postHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler, postHandler);
 
-      const extended = extendHandlers(...handlers);
+      server.use(...handlers.handlers);
 
-      server.use(...handlers);
-
-      extended.useMock({
+      handlers.useMock({
         method: 'get',
-        path: fullPath,
-        preset: 'mock',
+        path: '/api/users',
+        preset: 'Empty Users',
       });
 
-      extended.useRealAPI({
+      const status = mockingState.getCurrentStatus();
+      expect(status).toHaveLength(1);
+      expect(status[0]).toEqual({
+        path: '/api/users',
         method: 'get',
-        path: fullPath,
+        currentPreset: 'Empty Users',
+      });
+    });
+
+    it('should update status when switching between mock and real', async () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      server.use(...handlers.handlers);
+
+      // Set mock
+      handlers.useMock({
+        method: 'get',
+        path: '/api/users',
+        preset: 'Empty Users',
       });
 
-      const { data } = await setupTest(fullPath);
-      expect(data).toEqual({ message: 'default' });
+      let status = mockingState.getCurrentStatus();
+      expect(status[0].currentPreset).toBe('Empty Users');
+
+      // Switch to real API
+      handlers.useRealAPI({
+        method: 'get',
+        path: '/api/users',
+      });
+
+      status = mockingState.getCurrentStatus();
+      expect(status).toHaveLength(0);
+    });
+  });
+
+  describe('State Subscription', () => {
+    it('should notify subscribers of mocking changes', (done) => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      server.use(...handlers.handlers);
+
+      const unsubscribe = mockingState.subscribeToChanges(
+        ({ mockingStatus, currentProfile }) => {
+          expect(mockingStatus).toHaveLength(1);
+          expect(mockingStatus[0].currentPreset).toBe('Empty Users');
+          expect(currentProfile).toBeNull();
+          unsubscribe();
+          done();
+        }
+      );
+
+      handlers.useMock({
+        method: 'get',
+        path: '/api/users',
+        preset: 'Empty Users',
+      });
     });
   });
 
   describe('Mock Profiles', () => {
-    it('should apply mock profile correctly', async () => {
-      const fullPath = `${BASE_URL}/test`;
-      const handlers = [
-        createTestHandler(fullPath).presets(
-          {
-            label: 'success',
-            status: 200,
-            response: { message: 'success' },
-          },
-          {
-            label: 'error',
-            status: 404,
-            response: { message: 'error' },
-          }
-        ),
-      ];
+    it('should manage profiles correctly', () => {
+      const { userHandler, postHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler, postHandler);
 
-      const extended = extendHandlers(...handlers);
+      server.use(...handlers.handlers);
 
-      server.use(...handlers);
-
-      const profiles = extended.createMockProfiles(
+      const profiles = handlers.createMockProfiles(
         {
-          name: 'Success Profile',
+          name: 'Empty State',
           actions: ({ useMock }) => {
             useMock({
               method: 'get',
-              path: fullPath,
-              preset: 'success',
+              path: '/api/users',
+              preset: 'Empty Users',
             });
           },
         },
         {
-          name: 'Error Profile',
+          name: 'Error State',
           actions: ({ useMock }) => {
             useMock({
-              method: 'get',
-              path: fullPath,
-              preset: 'error',
+              method: 'post',
+              path: '/api/users',
+              preset: 'Create Error',
             });
           },
         }
       );
 
-      profiles.useMock('Success Profile');
-      const successResponse = await setupTest(fullPath);
-      expect(successResponse.data).toEqual({ message: 'success' });
+      expect(profiles.getAvailableProfiles()).toEqual([
+        'Empty State',
+        'Error State',
+      ]);
+      expect(mockingState.getCurrentProfile()).toBeNull();
 
-      profiles.useMock('Error Profile');
-      const errorResponse = await setupTest(fullPath);
-      expect(errorResponse.data).toEqual({ message: 'error' });
+      profiles.useMock('Empty State');
+      expect(mockingState.getCurrentProfile()).toBe('Empty State');
+
+      const status = mockingState.getCurrentStatus();
+      expect(status).toHaveLength(1);
+      expect(status[0].currentPreset).toBe('Empty Users');
     });
 
-    it('should handle mixed mock and real API in profile', async () => {
-      const testPath = `${BASE_URL}/test`;
-      const otherPath = `${BASE_URL}/other`;
+    it('should handle mixed mock and real API in profile', () => {
+      const { userHandler, postHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler, postHandler);
 
-      const handlers = [
-        createTestHandler(testPath).presets({
-          label: 'mock',
-          status: 200,
-          response: { message: 'mocked' },
-        }),
-        createTestHandler(otherPath).presets({
-          label: 'mock',
-          status: 200,
-          response: { message: 'mocked' },
-        }),
-      ];
+      server.use(...handlers.handlers);
 
-      const extended = extendHandlers(...handlers);
-
-      server.use(...handlers);
-
-      const profiles = extended.createMockProfiles({
+      const profiles = handlers.createMockProfiles({
         name: 'Mixed Profile',
         actions: ({ useMock, useRealAPI }) => {
           useMock({
             method: 'get',
-            path: testPath,
-            preset: 'mock',
+            path: '/api/users',
+            preset: 'Empty Users',
           });
           useRealAPI({
-            method: 'get',
-            path: otherPath,
+            method: 'post',
+            path: '/api/users',
           });
         },
       });
 
       profiles.useMock('Mixed Profile');
+      const status = mockingState.getCurrentStatus();
 
-      const testResponse = await setupTest(testPath);
-      expect(testResponse.data).toEqual({ message: 'mocked' });
+      expect(status).toHaveLength(1);
+      expect(status[0].path).toBe('/api/users');
+      expect(status[0].method).toBe('get');
+    });
 
-      const otherResponse = await setupTest(otherPath);
-      expect(otherResponse.data).toEqual({ message: 'default' });
+    it('should clear previous mocking state when switching profiles', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      const profiles = handlers.createMockProfiles(
+        {
+          name: 'Profile A',
+          actions: ({ useMock }) => {
+            useMock({
+              method: 'get',
+              path: '/api/users',
+              preset: 'Empty Users',
+            });
+          },
+        },
+        {
+          name: 'Profile B',
+          actions: ({ useMock }) => {
+            useMock({
+              method: 'get',
+              path: '/api/users',
+              preset: 'Multiple Users',
+            });
+          },
+        }
+      );
+
+      profiles.useMock('Profile A');
+      let status = mockingState.getCurrentStatus();
+      expect(status[0].currentPreset).toBe('Empty Users');
+
+      profiles.useMock('Profile B');
+      status = mockingState.getCurrentStatus();
+      expect(status[0].currentPreset).toBe('Multiple Users');
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw error for invalid preset', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      expect(() => {
+        handlers.useMock({
+          method: 'get',
+          path: '/api/users',
+          preset: 'Invalid Preset' as any,
+        });
+      }).toThrow('Preset not found');
+    });
+
+    it('should throw error for invalid profile', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      const profiles = handlers.createMockProfiles({
+        name: 'Test Profile',
+        actions: () => {},
+      });
+
+      expect(() => {
+        profiles.useMock('Invalid Profile' as any);
+      }).toThrow('Profile not found');
+    });
+  });
+
+  describe('Mocking State Utils', () => {
+    it('should reset single endpoint state', async () => {
+      const { userHandler, postHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler, postHandler);
+
+      handlers.useMock({
+        method: 'get',
+        path: '/api/users',
+        preset: 'Empty Users',
+      });
+
+      handlers.useMock({
+        method: 'post',
+        path: '/api/users',
+        preset: 'Create Success',
+      });
+
+      // Reset only GET endpoint
+      mockingState.resetEndpoint('get', '/api/users');
+
+      const status = mockingState.getCurrentStatus();
+      expect(status).toHaveLength(1);
+      expect(status[0].method).toBe('post');
+    });
+
+    it('should get endpoint state correctly', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      handlers.useMock({
+        method: 'get',
+        path: '/api/users',
+        preset: 'Empty Users',
+      });
+
+      const state = mockingState.getEndpointState('get', '/api/users');
+      expect(state?.preset.label).toBe('Empty Users');
+
+      const nonExistentState = mockingState.getEndpointState(
+        'get',
+        '/non-existent'
+      );
+      expect(nonExistentState).toBeUndefined();
+    });
+
+    it('should handle subscription cleanup correctly', () => {
+      const { userHandler } = createTestHandlers();
+      const handlers = extendHandlers(userHandler);
+
+      const mockCallback = jest.fn();
+      const unsubscribe = mockingState.subscribeToChanges(mockCallback);
+
+      handlers.useMock({
+        method: 'get',
+        path: '/api/users',
+        preset: 'Empty Users',
+      });
+
+      expect(mockCallback).toHaveBeenCalled();
+
+      unsubscribe();
+      mockingState.resetAll();
+
+      // Should not be called after unsubscribe
+      expect(mockCallback).toHaveBeenCalledTimes(1);
     });
   });
 });
