@@ -1,265 +1,204 @@
 # msw-scenarios
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b67bbc6f-bb2b-46ec-8e4a-76652a777f04" alt="msw-scenarios Logo" width="400" style="border-radius: 15px;"/>
+  <img src="https://github.com/user-attachments/assets/b67bbc6f-bb2b-46ec-8e4a-76652a777f04" alt="msw-preset Logo" width="400" style="border-radius: 15px;"/>
 </p>
 
-`msw-scenarios` is a **type-safe**, scenario-based mocking library built on top of [MSW (Mock Service Worker)](https://mswjs.io/). This library allows you to safely manage and switch between API responses based on predefined scenarios with full TypeScript support, ensuring that only valid scenarios and presets are used during development and testing.
+`msw-scenarios` is a **type-safe** preset management system built on top of [MSW (Mock Service Worker) 2.x.x](https://mswjs.io/). This library enhances MSW with a powerful preset system while maintaining complete TypeScript integration, ensuring that your API mocks are both flexible and type-safe during development and testing.
 
-> This package was created after watching the WOOWACON 2023 video.  
+> This library was inspired by the presentation at WOOWACON 2023:  
 > [프론트엔드 모킹 환경에 감칠맛 더하기](https://youtu.be/uiBCcmlJG4U?si=fZFCeQbxCCArA06a)
 
 ## Key Features and Benefits
 
-- **Scenario-based Mocking**: Easily define and switch between multiple API scenarios.
-- **Flexible API Response Management**: Seamlessly manage and switch API responses during development or testing.
-- **Type Guard Enforcement**: Ensures that only valid presets and scenarios are used, preventing runtime errors.
-- **Seamless Integration with MSW**: Works effortlessly with MSW for mocking API requests.
-- **Smooth Transition Between Mock and Real APIs**: Toggle between mocked and real API responses without any friction.
-
-## Required Packages
-
-Before using `msw-scenarios`, ensure you have the following installed:
-
-- **Node.js**: v14 or later
-- **pnpm** (recommended) or **npm**
-- **msw**: The core package for API mocking.
+- **Enhanced Type Safety**: Built from the ground up with TypeScript, ensuring type safety across all your mocks
+- **MSW Compatibility**: Works with all MSW features while adding preset management capabilities
+- **Developer Friendly**: Simple, intuitive API that makes mock management easier
+- **Flexible Mocking**: Easily switch between different response scenarios during development and testing
+- **Production Ready**: Used in real-world applications with proven reliability
 
 ## Installation
 
-You can install `msw-scenarios` using either `pnpm` or `npm`:
-
 ```bash
+npm install msw-scenarios msw
+# or
 pnpm add msw-scenarios msw
 # or
-npm install msw-scenarios msw
+yarn add msw-scenarios msw
 ```
 
-## Usage
+## Basic Usage
 
-### Defining API Endpoints and Scenarios
-
-Start by defining the API endpoints you want to mock along with the preset responses for each scenario. Then, define various scenarios for these endpoints.
+### 1. Define Your Handlers with Presets
 
 ```typescript
-import { defineEndpoints } from 'msw-scenarios';
+import { http } from 'msw-preset';
+import { HttpResponse } from 'msw';
 
-export const endpoints = defineEndpoints([
-  {
-    method: 'GET',
-    path: '/api/users',
-    presets: {
-      'Default Response': (req, res, ctx) =>
-        res(
-          ctx.json({
-            users: [
-              { id: 1, name: 'Alice' },
-              { id: 2, name: 'Bob' },
-            ],
-          })
-        ),
-      'Empty Response': (req, res, ctx) => res(ctx.json({ users: [] })),
+// Define a handler with presets
+const userHandler = http
+  .get('/api/user', () => {
+    return HttpResponse.json({ message: 'default response' });
+  })
+  .presets(
+    {
+      label: 'success',
+      status: 200,
+      response: { name: 'John Doe', age: 30 },
     },
-  },
-  {
-    method: 'POST',
-    path: '/api/users',
-    presets: {
-      'Create User Success': (req, res, ctx) =>
-        res(ctx.status(201), ctx.json({ id: 3, name: 'Charlie' })),
-      'Create User Failure': (req, res, ctx) =>
-        res(ctx.status(400), ctx.json({ error: 'User creation failed' })),
-    },
-  },
-] as const);
+    {
+      label: 'error',
+      status: 404,
+      response: { error: 'User not found' },
+    }
+  );
 ```
 
-### Defining Scenarios
-
-Next, define the scenarios for the above endpoints. Each scenario maps to a specific API response.
+### 2. Set Up Your Handlers
 
 ```typescript
-import { Scenario, defineScenarios } from 'msw-scenarios';
-import { endpoints } from './endpoints';
+import { extendHandlers } from 'msw-preset';
+import { setupWorker } from 'msw';
 
-export const scenarios = defineScenarios(endpoints, [
-  {
-    name: 'Get Default Users',
-    actions: (action) => {
-      action.useMock({
-        method: 'GET',
-        path: '/api/users',
-        preset: 'Default Response',
-      });
-    },
-  },
-  {
-    name: 'Get Empty Users',
-    actions: (action) => {
-      action.useMock({
-        method: 'GET',
-        path: '/api/users',
-        preset: 'Empty Response',
-      });
-    },
-  },
-  {
-    name: 'Create User Success',
-    actions: (action) => {
-      action.useMock({
-        method: 'POST',
-        path: '/api/users',
-        preset: 'Create User Success',
-      });
-    },
-  },
-  {
-    name: 'Create User Failure',
-    actions: (action) => {
-      action.useMock({
-        method: 'POST',
-        path: '/api/users',
-        preset: 'Create User Failure',
-      });
-    },
-  },
-] as const);
+const userHandlers = extendHandlers(userHandler);
+const worker = setupWorker(...userHandlers.handlers);
+
+worker.start();
 ```
 
-### Type Guard: Preventing Invalid Scenarios and Presets
-
-#### One of the strengths of msw-scenarios is its built-in type guard feature, ensuring that only valid presets and scenario names can be used.
-
-Here’s an example:
+### 3. Use Different Presets
 
 ```typescript
-mockManager.applyScenario('Get Default Users'); // ✅ Valid scenario
-mockManager.applyScenario('Invalid Scenario'); // ❌ TypeScript error: Argument of type '"Invalid Scenario"' is not assignable.
-```
-
-Similarly, when you define presets for an endpoint, TypeScript will enforce the use of only valid presets:
-
-```typescript
-mockManager.useMock({
-  method: 'GET',
-  path: '/api/users',
-  preset: 'Default Response', // ✅ Valid preset
+// Switch to success preset
+userHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'success',
 });
 
-mockManager.useMock({
-  method: 'GET',
-  path: '/api/users',
-  preset: 'Invalid Response', // ❌ TypeScript error: '"Invalid Response"' is not assignable to type.
+// Switch to error preset
+userHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'error',
 });
 ```
 
-These type guards help catch errors during development, ensuring that invalid scenarios or presets do not slip through into production or cause unexpected runtime errors.
-
-### Initializing Mocking in Your Application
-
-Now, initialize the mock service worker and apply the scenarios in your application.
+### 4. Dynamic Response Override
 
 ```typescript
-// mockSetup.ts
-import { initializeMocks } from 'msw-scenarios';
-import { endpoints } from './endpoints';
-import { scenarios } from './scenarios';
-
-const { mockManager, worker } = initializeMocks({
-  endpoints,
-  scenarios,
-});
-
-worker.start({
-  onUnhandledRequest: 'bypass', // Allows unhandled requests to pass through.
-  waitUntilReady: true,
-});
-
-// Apply the desired scenario
-mockManager.applyScenario('Get Default Users');
-```
-
-### Applying Different Scenarios
-
-You can easily switch between different API scenarios depending on your testing or development needs:
-
-```typescript
-// Switch to a different scenario
-mockManager.applyScenario('Create User Success');
-
-// To reset the scenario, you can switch back or use the real API
-mockManager.applyScenario('Get Default Users');
-```
-
-### Using Real APIs
-
-If you need to use the real API for a specific route, you can do so dynamically:
-
-```typescript
-mockManager.useRealAPI({
-  method: 'GET',
-  path: '/api/users',
+userHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'success',
+  override: ({ data }) => {
+    data.name = 'Jane Doe'; // Modify the response data
+  },
 });
 ```
 
-## Using in Tests
+## Type Safety Features
 
-You can also use `msw-scenarios` in your test environment to mock API responses based on scenarios. This allows for isolated and predictable tests.
+### Preset Label Type Safety
+
+TypeScript will ensure you only use defined preset labels:
 
 ```typescript
-// setupTests.ts
-import { initializeMocks } from 'msw-scenarios';
-import { endpoints } from './endpoints';
-import { scenarios } from './scenarios';
-
-const { mockManager, worker } = initializeMocks({
-  endpoints,
-  scenarios,
+// ✅ Valid - 'success' is a defined preset
+userHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'success',
 });
 
-beforeAll(() => worker.start());
-afterEach(() => worker.resetHandlers());
-afterAll(() => worker.stop());
-
-// Apply a specific scenario before running a test
-export const applyScenario = mockManager.applyScenario;
+// ❌ TypeScript Error - 'unknown' is not a defined preset
+userHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'unknown',
+});
 ```
 
+### Response Type Safety
+
+The response type is inferred from your preset definitions:
+
 ```typescript
-// user.test.ts
-import { applyScenario } from './setupTests';
-
-test('should fetch the default list of users', async () => {
-  applyScenario('Get Default Users');
-
-  const response = await fetch('/api/users');
-  const data = await response.json();
-
-  expect(data).toEqual({
-    users: [
-      { id: 1, name: 'Alice' },
-      { id: 2, name: 'Bob' },
-    ],
+const userHandler = http
+  .get('/api/user', () => {
+    return HttpResponse.json(null);
+  })
+  .presets({
+    label: 'success',
+    status: 200,
+    response: { name: 'John', age: 30 },
   });
-});
 
-test('should fetch an empty list of users', async () => {
-  applyScenario('Get Empty Users');
+const userHandlers = extendHandlers(userHandler);
 
-  const response = await fetch('/api/users');
-  const data = await response.json();
-
-  expect(data).toEqual({ users: [] });
+userHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'success',
+  override: ({ data }) => {
+    data.name = 'Jane'; // ✅ Valid
+    data.age = 25; // ✅ Valid
+    data.invalid = true; // ❌ TypeScript Error - Property 'invalid' does not exist
+  },
 });
 ```
 
-## Advantages
+## Using with Tests
 
-Scenario Flexibility: Define multiple scenarios and toggle between them to test different API behaviors in your application.
-Improved Development Workflow: Mock APIs even when the backend is not available, or switch between mock and real APIs during development.
-Easier Testing: Quickly set up different API responses for unit tests, integration tests, or user flows.
-Seamless API Switching: Switch between mocked and real API responses without changing application code, ensuring a smoother development and debugging process.
+```typescript
+import { setupServer } from 'msw/node';
+import { http, extendHandlers } from 'msw-preset';
+import { HttpResponse } from 'msw';
+
+const handler = http
+  .get('/api/test', () => {
+    return HttpResponse.json(null);
+  })
+  .presets({
+    label: 'success',
+    status: 200,
+    response: { data: 'test' },
+  });
+
+const testHandlers = extendHandlers(handler);
+const server = setupServer(...testHandlers.handlers);
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+test('should return preset data', async () => {
+  testHandlers.useMock({
+    method: 'get',
+    path: '/api/test',
+    preset: 'success',
+  });
+
+  const response = await fetch('/api/test');
+  const data = await response.json();
+
+  expect(data).toEqual({ data: 'test' });
+});
+```
+
+## Compatibility with MSW
+
+`msw-preset` is fully compatible with MSW 2.x.x and provides access to all MSW features. You can:
+
+- Use all MSW request handlers (http, GraphQL)
+- Access MSW's context utilities
+- Use MSW's response composition tools
+- Leverage MSW's built-in testing utilities
 
 ## License
 
-This project is licensed under the MIT License.
+MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
