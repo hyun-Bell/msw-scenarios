@@ -1,6 +1,6 @@
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { http, selectPreset } from '..';
+import { http, extendHandlers } from '..';
 
 const server = setupServer();
 const BASE_URL = 'http://localhost';
@@ -19,14 +19,15 @@ describe('MSW Preset Extension', () => {
   });
 
   it('should return default response when no preset is selected', async () => {
-    const handler = http.get('http://localhost/test', () => {
-      // 전체 URL 패턴 사용
-      return new HttpResponse(JSON.stringify({ message: 'default' }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
+    const { handlers } = extendHandlers(
+      http.get('http://localhost/test', () => {
+        return new HttpResponse(JSON.stringify({ message: 'default' }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
 
-    server.use(handler);
+    server.use(...handlers);
 
     const response = await fetch(`${BASE_URL}/test`);
     const data = await response.json();
@@ -35,33 +36,70 @@ describe('MSW Preset Extension', () => {
   });
 
   it('should return preset response when preset is selected', async () => {
-    const handler = http
-      .get('http://localhost/test', () => {
-        // 전체 URL 패턴 사용
-        return new HttpResponse(JSON.stringify({ message: 'default' }), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      })
-      .presets(
-        {
-          label: 'Custom Response',
-          status: 200,
-          response: { message: 'preset' },
-        },
-        {
-          label: 'Another Response',
-          status: 200,
-          response: { message: 'another' },
-        }
-      );
+    const { handlers, useMock } = extendHandlers(
+      http
+        .get('http://localhost/test', () => {
+          return new HttpResponse(JSON.stringify({ message: 'default' }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        })
+        .presets(
+          {
+            label: 'Custom Response',
+            status: 200,
+            response: { message: 'preset' },
+          },
+          {
+            label: 'Another Response',
+            status: 200,
+            response: { message: 'another' },
+          }
+        )
+    );
 
-    server.use(handler);
-    selectPreset('http://localhost/test', null); // 전체 URL 패턴으로 프리셋 선택
-    selectPreset('http://localhost/test', 1); // 전체 URL 패턴으로 프리셋 선택
+    server.use(...handlers);
+
+    useMock({
+      method: 'GET',
+      path: 'http://localhost/test',
+      preset: 'Another Response',
+    });
 
     const response = await fetch(`${BASE_URL}/test`);
     const data = await response.json();
 
-    expect(data).toEqual({ message: 'preset' });
+    expect(data).toEqual({ message: 'another' });
+  });
+
+  it('should apply override function to preset response', async () => {
+    const { handlers, useMock } = extendHandlers(
+      http
+        .get('http://localhost/test', () => {
+          return new HttpResponse(JSON.stringify({ message: 'default' }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        })
+        .presets({
+          label: 'Custom Response',
+          status: 200,
+          response: { message: 'preset', count: 0 },
+        })
+    );
+
+    server.use(...handlers);
+
+    useMock({
+      method: 'GET',
+      path: 'http://localhost/test',
+      preset: 'Custom Response',
+      override: ({ data }) => {
+        data.count = 42;
+      },
+    });
+
+    const response = await fetch(`${BASE_URL}/test`);
+    const data = await response.json();
+
+    expect(data).toEqual({ message: 'preset', count: 42 });
   });
 });

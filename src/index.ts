@@ -3,8 +3,12 @@ import {
   HttpResponse,
   DefaultBodyType,
   http as originalHttp,
-  RequestHandler,
+  HttpRequestHandler,
+  ResponseResolver,
+  PathParams,
+  Path,
 } from 'msw';
+import { produce } from 'immer';
 
 // Preset 타입 정의
 export interface Preset {
@@ -13,107 +17,131 @@ export interface Preset {
   response: any;
 }
 
+// useMock 옵션 타입 정의
+interface UseMockOptions<T = any> {
+  method: string;
+  path: string;
+  preset: string;
+  override?: (draft: { data: T }) => void;
+}
+
 // 확장된 핸들러 인터페이스
-export interface PresetHandler extends RequestHandler {
+export interface PresetHandler extends HttpHandler {
   presets: (...presets: Preset[]) => PresetHandler;
 }
 
-type HttpMethods = keyof typeof originalHttp;
+// 확장된 핸들러 컬렉션 인터페이스
+export interface ExtendedHandlers {
+  handlers: HttpHandler[];
+  useMock: (options: UseMockOptions) => void;
+}
 
-// 확장된 HTTP 타입
-export type ExtendedHttp = Record<
-  HttpMethods,
-  (
-    path: string,
-    resolver: (req: Request) => Promise<HttpResponse> | HttpResponse
-  ) => PresetHandler
->;
+// 확장된 HTTP 메서드 타입
+type HttpMethod = <RequestData extends DefaultBodyType = DefaultBodyType>(
+  path: string,
+  resolver: ResponseResolver<any, any>
+) => PresetHandler;
+
+// 확장된 HTTP 객체 타입
+interface ExtendedHttp {
+  get: HttpMethod;
+  post: HttpMethod;
+  put: HttpMethod;
+  delete: HttpMethod;
+  patch: HttpMethod;
+  options: HttpMethod;
+  head: HttpMethod;
+  all: HttpMethod;
+}
 
 // 프리셋 저장소
 const presetStore = new Map<string, Preset[]>();
-const selectedPresetStore = new Map<string, number>();
+const selectedPresetStore = new Map<
+  string,
+  { preset: Preset; override?: UseMockOptions['override'] }
+>();
 
 // http 객체를 Proxy로 래핑하여 확장
-export const http: ExtendedHttp = new Proxy(originalHttp, {
+export const http = new Proxy(originalHttp as unknown as ExtendedHttp, {
   get(target, method: string) {
-    const originalMethod = Reflect.get(target, method);
+    const originalMethod = Reflect.get(originalHttp, method);
     if (typeof originalMethod !== 'function') {
       return originalMethod;
     }
 
     return (
       path: string,
-      resolver: (req: Request) => Promise<HttpResponse> | HttpResponse
+      resolver: ResponseResolver<any, any>
     ): PresetHandler => {
-      const wrappedResolver = async (req: Request) => {
-        const presets = presetStore.get(path);
-        const selectedIndex = selectedPresetStore.get(path);
+      const wrappedResolver: typeof resolver = async (info) => {
+        const selected = selectedPresetStore.get(path);
 
-        if (presets && selectedIndex !== undefined && selectedIndex >= 0) {
-          const selectedPreset = presets[selectedIndex];
-          return new HttpResponse(JSON.stringify(selectedPreset.response), {
-            status: selectedPreset.status,
+        if (selected) {
+          let response = selected.preset.response;
+
+          if (selected.override) {
+            response = produce(response, (draft: any) => {
+              selected.override!({ data: draft });
+            });
+          }
+
+          return new HttpResponse(JSON.stringify(response), {
+            status: selected.preset.status,
             headers: {
               'Content-Type': 'application/json',
             },
           });
         }
 
-        return resolver(req);
+        return resolver(info);
       };
 
-      const originalHandler = originalMethod(path, wrappedResolver);
+      const handler = originalMethod(path, wrappedResolver) as PresetHandler;
 
-      const extendedHandler = new Proxy(originalHandler as unknown as object, {
-        get(handlerTarget, prop: string) {
-          if (prop === 'presets') {
-            return (...presets: Preset[]): PresetHandler => {
-              if (presets.length > 0) {
-                presetStore.set(path, presets);
-              }
-              return extendedHandler;
-            };
-          }
-          return Reflect.get(handlerTarget, prop);
-        },
-      }) as PresetHandler;
+      // presets 메서드 직접 추가
+      handler.presets = (...presets: Preset[]) => {
+        if (presets.length > 0) {
+          presetStore.set(path, presets);
+        }
+        return handler;
+      };
 
-      return extendedHandler;
+      return handler;
     };
   },
-}) as unknown as ExtendedHttp;
+});
 
-export function selectPreset(path: string, index: number | null) {
-  if (index === null) {
-    selectedPresetStore.delete(path);
-    return;
-  }
+// Helper function to extend handlers with preset functionality
+export function extendHandlers(...handlers: HttpHandler[]): ExtendedHandlers {
+  return {
+    handlers,
+    useMock(options: UseMockOptions) {
+      const handler = handlers.find((h) => {
+        const handlerPath = (h as any).info.path;
+        const handlerMethod = (h as any).info.method;
+        return handlerPath === options.path && handlerMethod === options.method;
+      });
 
-  const presets = presetStore.get(path);
-  if (presets && index >= 0 && index < presets.length) {
-    selectedPresetStore.set(path, index);
-  }
-}
+      if (!handler) {
+        throw new Error(
+          `No handler found for ${options.method} ${options.path}`
+        );
+      }
 
-export function getPresetsState() {
-  const state: Record<
-    string,
-    {
-      presets: Preset[] | undefined;
-      selectedIndex: number | undefined;
-    }
-  > = {};
+      const presets = presetStore.get(options.path);
+      if (!presets) {
+        throw new Error(`No presets found for path: ${options.path}`);
+      }
 
-  for (const [path, presets] of presetStore.entries()) {
-    state[path] = {
-      presets,
-      selectedIndex: selectedPresetStore.get(path),
-    };
-  }
+      const preset = presets.find((p) => p.label === options.preset);
+      if (!preset) {
+        throw new Error(`Preset not found: ${options.preset}`);
+      }
 
-  return state;
-}
-
-export function extendHandlers<T extends HttpHandler[]>(handlers: T): T {
-  return handlers;
+      selectedPresetStore.set(options.path, {
+        preset,
+        override: options.override,
+      });
+    },
+  };
 }
