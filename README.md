@@ -260,7 +260,8 @@ test('should return preset data', async () => {
 
 ## React Integration Tool
 
-For reference, check out msw-scenarios-react-tool React-based UI tool for managing msw-scenarios at [msw-scenarios-react-tool](https://github.com/manOfBackend/msw-scenarios-react-tool). This tool will provide a user-friendly interface for managing your mock scenarios directly in your React applications.
+For reference, check out msw-scenarios-react-tool React-based UI tool for managing msw-scenarios at [msw-scenarios-react-tool](https://github.com/manOfBackend/msw-scenarios-react-tool).
+This tool will provide a user-friendly interface for managing your mock scenarios directly in your React applications.
 
 ## License
 
