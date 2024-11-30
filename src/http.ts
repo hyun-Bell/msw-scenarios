@@ -17,9 +17,10 @@ import {
 export const http = new Proxy(originalHttp, {
   get<K extends HttpMethodLiteral>(
     target: typeof originalHttp,
-    method: K
+    method: K,
+    receiver: any
   ): HttpMethodHandler<K> {
-    const originalMethod = Reflect.get(target, method);
+    const originalMethod = Reflect.get(target, method, receiver);
     if (typeof originalMethod !== 'function') {
       return originalMethod;
     }
@@ -50,13 +51,10 @@ export const http = new Proxy(originalHttp, {
         return resolver(info);
       };
 
-      const handler = originalMethod(path, wrappedResolver) as PresetHandler<
-        T,
-        K,
-        P,
-        string,
-        T
-      >;
+      const handler = Reflect.apply(originalMethod, target, [
+        path,
+        wrappedResolver,
+      ]) as PresetHandler<T, K, P, string, T>;
 
       handler._method = method;
       handler._path = path;
