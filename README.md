@@ -84,7 +84,70 @@ userHandlers.useMock({
 });
 ```
 
-### 4. Dynamic Response Override
+### 4. Using Multiple Handlers
+
+You can manage multiple handlers simultaneously using `extendHandlers`:
+
+```typescript
+import { extendHandlers, http } from 'msw-scenarios';
+import { HttpResponse } from 'msw';
+
+// User handler definition
+export const userHandler = http
+  .get('/api/user', () => {
+    return HttpResponse.json({ message: 'default response' });
+  })
+  .presets(
+    {
+      label: 'success',
+      status: 200,
+      response: { name: 'John Doe', age: 30 },
+    },
+    {
+      label: 'error',
+      status: 404,
+      response: { error: 'User not found' },
+    }
+  );
+
+// Posts handler definition
+export const postHandler = http
+  .get('/api/posts', () => {
+    return HttpResponse.json({ posts: [] });
+  })
+  .presets(
+    {
+      label: 'has posts',
+      status: 200,
+      response: {
+        posts: [
+          { id: 1, title: 'First Post' },
+          { id: 2, title: 'Second Post' },
+        ],
+      },
+    },
+    {
+      label: 'empty',
+      status: 200,
+      response: { posts: [] },
+    }
+  );
+
+// Combine multiple handlers
+const multiHandlers = extendHandlers(userHandler, postHandler);
+
+// Use specific preset with override
+multiHandlers.useMock({
+  method: 'get',
+  path: '/api/user',
+  preset: 'success',
+  override: (draft) => {
+    draft.data = { name: 'Jane Doe', age: 25 };
+  },
+});
+```
+
+### 5. Dynamic Response Override
 
 ```typescript
 userHandlers.useMock({
@@ -194,6 +257,10 @@ test('should return preset data', async () => {
 - Access MSW's context utilities
 - Use MSW's response composition tools
 - Leverage MSW's built-in testing utilities
+
+## React Integration Tool
+
+For reference, check out msw-scenarios-react-tool React-based UI tool for managing msw-scenarios at [msw-scenarios-react-tool](https://github.com/manOfBackend/msw-scenarios-react-tool). This tool will provide a user-friendly interface for managing your mock scenarios directly in your React applications.
 
 ## License
 
