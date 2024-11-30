@@ -46,5 +46,15 @@ export const selectedPresetActions = {
     );
   },
   getSelected: (path: string) => selectedPresetStore.getState().selected[path],
-  clearSelected: () => selectedPresetStore.setState({ selected: {} }),
+  clearSelected: (path?: string) => {
+    if (path) {
+      selectedPresetStore.setState(
+        produce((state: SelectedPresetState) => {
+          delete state.selected[path];
+        })
+      );
+    } else {
+      selectedPresetStore.setState({ selected: {} });
+    }
+  },
 };

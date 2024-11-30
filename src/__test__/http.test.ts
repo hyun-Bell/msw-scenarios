@@ -103,4 +103,135 @@ describe('MSW Preset Extension', () => {
       expect(data).toEqual({ message: 'preset', count: 42 });
     });
   });
+
+  describe('Real API', () => {
+    it('should return default response when useRealAPI is called', async () => {
+      const fullPath = `${BASE_URL}/test`;
+      const handlers = [
+        createTestHandler(fullPath).presets({
+          label: 'mock',
+          status: 200,
+          response: { message: 'mocked' },
+        }),
+      ];
+
+      const extended = extendHandlers(...handlers);
+
+      server.use(...handlers);
+
+      extended.useMock({
+        method: 'get',
+        path: fullPath,
+        preset: 'mock',
+      });
+
+      extended.useRealAPI({
+        method: 'get',
+        path: fullPath,
+      });
+
+      const { data } = await setupTest(fullPath);
+      expect(data).toEqual({ message: 'default' });
+    });
+  });
+
+  describe('Mock Profiles', () => {
+    it('should apply mock profile correctly', async () => {
+      const fullPath = `${BASE_URL}/test`;
+      const handlers = [
+        createTestHandler(fullPath).presets(
+          {
+            label: 'success',
+            status: 200,
+            response: { message: 'success' },
+          },
+          {
+            label: 'error',
+            status: 404,
+            response: { message: 'error' },
+          }
+        ),
+      ];
+
+      const extended = extendHandlers(...handlers);
+
+      server.use(...handlers);
+
+      const profiles = extended.createMockProfiles(
+        {
+          name: 'Success Profile',
+          actions: ({ useMock }) => {
+            useMock({
+              method: 'get',
+              path: fullPath,
+              preset: 'success',
+            });
+          },
+        },
+        {
+          name: 'Error Profile',
+          actions: ({ useMock }) => {
+            useMock({
+              method: 'get',
+              path: fullPath,
+              preset: 'error',
+            });
+          },
+        }
+      );
+
+      profiles.useMock('Success Profile');
+      const successResponse = await setupTest(fullPath);
+      expect(successResponse.data).toEqual({ message: 'success' });
+
+      profiles.useMock('Error Profile');
+      const errorResponse = await setupTest(fullPath);
+      expect(errorResponse.data).toEqual({ message: 'error' });
+    });
+
+    it('should handle mixed mock and real API in profile', async () => {
+      const testPath = `${BASE_URL}/test`;
+      const otherPath = `${BASE_URL}/other`;
+
+      const handlers = [
+        createTestHandler(testPath).presets({
+          label: 'mock',
+          status: 200,
+          response: { message: 'mocked' },
+        }),
+        createTestHandler(otherPath).presets({
+          label: 'mock',
+          status: 200,
+          response: { message: 'mocked' },
+        }),
+      ];
+
+      const extended = extendHandlers(...handlers);
+
+      server.use(...handlers);
+
+      const profiles = extended.createMockProfiles({
+        name: 'Mixed Profile',
+        actions: ({ useMock, useRealAPI }) => {
+          useMock({
+            method: 'get',
+            path: testPath,
+            preset: 'mock',
+          });
+          useRealAPI({
+            method: 'get',
+            path: otherPath,
+          });
+        },
+      });
+
+      profiles.useMock('Mixed Profile');
+
+      const testResponse = await setupTest(testPath);
+      expect(testResponse.data).toEqual({ message: 'mocked' });
+
+      const otherResponse = await setupTest(otherPath);
+      expect(otherResponse.data).toEqual({ message: 'default' });
+    });
+  });
 });

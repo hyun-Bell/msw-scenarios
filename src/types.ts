@@ -121,3 +121,50 @@ export type Preset = {
   status: number;
   response: any;
 };
+
+export interface MockProfileHandlers<H extends readonly PresetHandler[]> {
+  handlers: H;
+  useMock: ExtendedHandlers<H>['useMock'];
+  useRealAPI: <
+    M extends ExtractMethod<H[number]>,
+    P extends ExtractPath<H[number]>,
+  >(options: {
+    method: M;
+    path: P;
+  }) => void;
+}
+
+export interface MockProfile<
+  H extends readonly PresetHandler[],
+  Name extends string = string,
+> {
+  name: Name;
+  actions: (handlers: MockProfileHandlers<H>) => void;
+}
+
+export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
+  handlers: H;
+  useMock: <
+    M extends ExtractMethod<H[number]>,
+    P extends ExtractPath<H[number]>,
+  >(
+    options: UseMockOptions<H, M, P>
+  ) => void;
+  useRealAPI: <
+    M extends ExtractMethod<H[number]>,
+    P extends ExtractPath<H[number]>,
+  >(options: {
+    method: M;
+    path: P;
+  }) => void;
+  createMockProfiles: <
+    Name extends string,
+    Profile extends MockProfile<H, Name>,
+    Profiles extends readonly [Profile, ...Profile[]],
+  >(
+    ...profiles: Profiles
+  ) => {
+    useMock: (profileName: Profiles[number]['name']) => void;
+    profiles: Profiles;
+  };
+}
