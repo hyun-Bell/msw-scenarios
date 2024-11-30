@@ -1,4 +1,4 @@
-import { selectedPresetActions, selectedPresetStore } from './store/stores';
+import { mockingState } from './mockingState';
 import {
   ExtendedHandlers,
   ExtractMethod,
@@ -18,7 +18,10 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       const handlerPath = h._path;
       const handlerMethod = h._method;
       return handlerPath === options.path && handlerMethod === options.method;
-    });
+    }) as Extract<
+      H[number],
+      { _method: typeof options.method; _path: typeof options.path }
+    >;
 
     if (!handler) {
       throw new Error(`No handler found for ${options.method} ${options.path}`);
@@ -36,7 +39,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`Preset not found: ${options.preset}`);
     }
 
-    selectedPresetActions.setSelected(options.method, options.path, {
+    mockingState.setSelected(options.method, options.path, {
       preset,
       override: options.override,
     } as SelectedPreset);
@@ -59,47 +62,13 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`No handler found for ${options.method} ${options.path}`);
     }
 
-    selectedPresetActions.clearSelected(options.method, options.path);
+    mockingState.resetEndpoint(options.method, options.path);
   };
 
   return {
     handlers,
     useMock: useMockFunction,
     useRealAPI: useRealAPIFunction,
-    getRegisteredHandlers: () => {
-      return handlers.map((handler) => ({
-        method: handler._method,
-        path: handler._path,
-        presets: handler._presets,
-      }));
-    },
-    getCurrentMockingStatus: () => {
-      const state = selectedPresetStore.getState();
-      return Object.entries(state.selected).map(([key, selected]) => {
-        const [method, path] = key.split(':');
-        return {
-          path,
-          method,
-          currentPreset: selected.preset.label,
-        };
-      });
-    },
-    subscribeToChanges: (callback) => {
-      return selectedPresetStore.subscribe((state) => {
-        const mockingStatus = Object.entries(state.selected).map(
-          ([path, selected]) => ({
-            path,
-            method: handlers.find((h) => h._path === path)?._method ?? '',
-            currentPreset: selected.preset.label,
-          })
-        );
-
-        callback({
-          mockingStatus,
-          currentProfile: state.currentProfile,
-        });
-      });
-    },
     createMockProfiles<
       Name extends string,
       Profile extends MockProfile<H, Name>,
@@ -107,15 +76,14 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     >(...profiles: Profiles): MockProfileManager<Profiles> {
       return {
         profiles,
-        useMock(profileName: Profiles[number]['name']) {
+        useMock(profileName: any) {
           const profile = profiles.find((p) => p.name === profileName);
           if (!profile) {
             throw new Error(`Profile not found: ${profileName}`);
           }
 
-          // 모든 상태를 초기화하기 위해 clearAll 사용
-          selectedPresetActions.clearAll();
-          selectedPresetActions.setCurrentProfile(profileName);
+          mockingState.resetAll();
+          mockingState.setCurrentProfile(profileName);
 
           profile.actions({
             handlers,
@@ -125,9 +93,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         },
         getAvailableProfiles: () => profiles.map((p) => p.name),
         getCurrentProfile: () =>
-          selectedPresetActions.getCurrentProfile() as
-            | Profiles[number]['name']
-            | null,
+          mockingState.getCurrentProfile<Profiles[number]['name']>(),
       };
     },
   };

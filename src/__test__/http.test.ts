@@ -66,7 +66,11 @@ describe('MSW Preset Extension', () => {
       const { userHandler, postHandler } = createTestHandlers();
       const handlers = extendHandlers(userHandler, postHandler);
 
-      const handlerInfos = handlers.getRegisteredHandlers();
+      const handlerInfos = handlers.handlers.map((handler) => ({
+        method: handler._method,
+        path: handler._path,
+        presets: handler._presets,
+      }));
 
       expect(handlerInfos).toHaveLength(2);
       expect(handlerInfos[0]).toEqual({

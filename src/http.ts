@@ -5,7 +5,8 @@ import {
   PathParams,
   ResponseResolver,
 } from 'msw';
-import { presetActions, selectedPresetActions } from './store/stores';
+import { mockingState } from './mockingState';
+import { presetActions } from './store/stores';
 import {
   Http,
   HttpMethodHandler,
@@ -30,7 +31,7 @@ export const http = new Proxy(originalHttp, {
       resolver: ResponseResolver<any, PathParams<string>>
     ): PresetHandler<T, K, P, string, T> => {
       const wrappedResolver: typeof resolver = async (info) => {
-        const selected = selectedPresetActions.getSelected(method, path) as
+        const selected = mockingState.getEndpointState(method, path) as
           | SelectedPreset<T>
           | undefined;
 
