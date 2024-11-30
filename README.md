@@ -1,7 +1,7 @@
 # msw-scenarios
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b67bbc6f-bb2b-46ec-8e4a-76652a777f04" alt="msw-preset Logo" width="400" style="border-radius: 15px;"/>
+  <img src="https://github.com/user-attachments/assets/b67bbc6f-bb2b-46ec-8e4a-76652a777f04" alt="msw-scenarios Logo" width="400" style="border-radius: 15px;"/>
 </p>
 
 `msw-scenarios` is a **type-safe** preset management system built on top of [MSW (Mock Service Worker) 2.x.x](https://mswjs.io/). This library enhances MSW with a powerful preset system while maintaining complete TypeScript integration, ensuring that your API mocks are both flexible and type-safe during development and testing.
@@ -32,7 +32,7 @@ yarn add msw-scenarios msw
 ### 1. Define Your Handlers with Presets
 
 ```typescript
-import { http } from 'msw-preset';
+import { http } from 'msw-scenarios';
 import { HttpResponse } from 'msw';
 
 // Define a handler with presets
@@ -57,7 +57,7 @@ const userHandler = http
 ### 2. Set Up Your Handlers
 
 ```typescript
-import { extendHandlers } from 'msw-preset';
+import { extendHandlers } from 'msw-scenarios';
 import { setupWorker } from 'msw';
 
 const userHandlers = extendHandlers(userHandler);
@@ -152,7 +152,7 @@ userHandlers.useMock({
 
 ```typescript
 import { setupServer } from 'msw/node';
-import { http, extendHandlers } from 'msw-preset';
+import { http, extendHandlers } from 'msw-scenarios';
 import { HttpResponse } from 'msw';
 
 const handler = http
@@ -188,7 +188,7 @@ test('should return preset data', async () => {
 
 ## Compatibility with MSW
 
-`msw-preset` is fully compatible with MSW 2.x.x and provides access to all MSW features. You can:
+`msw-scenarios` is fully compatible with MSW 2.x.x and provides access to all MSW features. You can:
 
 - Use all MSW request handlers (http, GraphQL)
 - Access MSW's context utilities
