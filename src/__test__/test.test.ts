@@ -1,14 +1,10 @@
+// Unit tests for the package.
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { http, extendHandlers } from '..';
 
 const server = setupServer();
 const BASE_URL = 'http://localhost';
-
-interface TestResponse {
-  message: string;
-  count?: number;
-}
 
 describe('MSW Preset Extension', () => {
   beforeAll(() => {

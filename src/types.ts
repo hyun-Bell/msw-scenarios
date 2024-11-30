@@ -1,95 +1,117 @@
-import {
-  DefaultBodyType,
-  MockedRequest,
-  ResponseResolver,
-  RestContext,
-} from 'msw';
+import { HttpHandler, PathParams, ResponseResolver } from 'msw';
 
-/* ============================= */
-/*         Type Definitions      */
-/* ============================= */
+/**
+ * Supported HTTP methods.
+ */
+export type HttpMethodLiteral =
+  | 'get'
+  | 'post'
+  | 'put'
+  | 'delete'
+  | 'patch'
+  | 'options'
+  | 'head'
+  | 'all';
 
-/** HTTP method types */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-
-/** Endpoint definition */
-export interface EndpointDefinition {
-  method: HttpMethod;
-  path: string | RegExp;
-  presets: {
-    [presetName: string]: ResponseResolver<
-      MockedRequest<DefaultBodyType>,
-      RestContext
-    >;
-  };
+/**
+ * PresetHandler interface to define a handler with preset responses.
+ */
+export interface PresetHandler<
+  T = any,
+  M extends HttpMethodLiteral = HttpMethodLiteral,
+  P extends string = string,
+  L extends string = string,
+  R = any,
+> extends HttpHandler {
+  presets: <Labels extends string, Response>(
+    ...presets: { label: Labels; status: number; response: Response }[]
+  ) => PresetHandler<T, M, P, Labels, Response>;
+  _method: M;
+  _path: P;
+  _responseType: T;
+  _presets: { label: L; status: number; response: R }[];
+  _labels: L;
 }
 
-/** List of endpoints */
-export type EndpointList = ReadonlyArray<EndpointDefinition>;
+/**
+ * HttpMethodHandler definition for handling different HTTP methods.
+ */
+export type HttpMethodHandler<M extends HttpMethodLiteral> = <
+  T,
+  P extends string,
+>(
+  path: P,
+  resolver: ResponseResolver<any, PathParams<string>>
+) => PresetHandler<T, M, P>;
 
-/** Scenario type */
-export interface Scenario<Endpoints extends EndpointList> {
-  name: string;
-  actions: (action: Action<Endpoints>) => void;
+/**
+ * Http interface for method handlers.
+ */
+export interface Http {
+  get: HttpMethodHandler<'get'>;
+  post: HttpMethodHandler<'post'>;
+  put: HttpMethodHandler<'put'>;
+  delete: HttpMethodHandler<'delete'>;
+  patch: HttpMethodHandler<'patch'>;
+  options: HttpMethodHandler<'options'>;
+  head: HttpMethodHandler<'head'>;
+  all: HttpMethodHandler<'all'>;
 }
 
-/** List of scenarios */
-export type ScenarioList<Endpoints extends EndpointList> = ReadonlyArray<
-  Scenario<Endpoints>
->;
+export type ExtractMethod<H> =
+  H extends PresetHandler<any, infer M, any, any> ? M : never;
 
-/** Valid HTTP methods from the endpoints */
-export type ValidMethods<Endpoints extends EndpointList> =
-  Endpoints[number]['method'];
+export type ExtractPath<H> =
+  H extends PresetHandler<any, any, infer P, any> ? P : never;
 
-/** Valid paths for a given method */
-export type ValidPathsForMethod<
-  Endpoints extends EndpointList,
-  M extends ValidMethods<Endpoints>,
-> = Extract<Endpoints[number], { method: M }>['path'];
+export type ExtractResponseType<H> =
+  H extends PresetHandler<infer T, any, any, any> ? T : never;
 
-/** Valid presets for a given method and path */
-export type PresetsFor<
-  Endpoints extends EndpointList,
-  M extends ValidMethods<Endpoints>,
-  P extends ValidPathsForMethod<Endpoints, M>,
-> = keyof Extract<Endpoints[number], { method: M; path: P }>['presets'];
+export type ExtractPresetLabels<H> =
+  H extends PresetHandler<any, any, any, infer L> ? L : never;
 
-/** Extract endpoint for a method and path */
-export type EndpointFor<
-  Endpoints extends EndpointList,
-  M extends ValidMethods<Endpoints>,
-  P extends ValidPathsForMethod<Endpoints, M>,
-> = Extract<Endpoints[number], { method: M; path: P }>;
+export type ExtractPresetResponse<H, L> =
+  H extends PresetHandler<any, any, any, any, infer R> ? R : never;
 
-/** Action type */
-export interface Action<Endpoints extends EndpointList> {
-  useMock<
-    M extends ValidMethods<Endpoints>,
-    P extends ValidPathsForMethod<Endpoints, M>,
-    Preset extends PresetsFor<Endpoints, M, P>,
-  >(config: {
-    method: M;
-    path: P;
-    preset: Preset;
-  }): void;
-
-  useRealAPI<
-    M extends ValidMethods<Endpoints>,
-    P extends ValidPathsForMethod<Endpoints, M>,
-  >(config: {
-    method: M;
-    path: P;
-  }): void;
+export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
+  handlers: H;
+  useMock: <
+    M extends ExtractMethod<H[number]>,
+    P extends ExtractPath<H[number]>,
+  >(
+    options: UseMockOptions<H, M, P>
+  ) => void;
 }
 
-/** MockManager API interface */
-export interface MockManagerAPI<
-  Endpoints extends EndpointList,
-  Scenarios extends ScenarioList<Endpoints>,
+export interface UseMockOptions<
+  H extends readonly [...any[]],
+  M extends ExtractMethod<H[number]>,
+  P extends ExtractPath<H[number]>,
+  L extends ExtractPresetLabels<
+    Extract<H[number], { _method: M; _path: P }>
+  > = ExtractPresetLabels<Extract<H[number], { _method: M; _path: P }>>,
 > {
-  useMock: Action<Endpoints>['useMock'];
-  useRealAPI: Action<Endpoints>['useRealAPI'];
-  applyScenario: (name: Scenarios[number]['name']) => void;
-  removeScenario: (name: Scenarios[number]['name']) => void;
+  method: M;
+  path: P;
+  preset: L;
+  override?: (draft: {
+    data: ExtractPresetResponse<
+      Extract<H[number], { _method: M; _path: P }>,
+      L
+    >;
+  }) => void;
 }
+
+// src/stores.ts
+// Stores to keep track of presets and selected responses.
+export const presetStore = new Map<
+  string,
+  { label: string; status: number; response: any }[]
+>();
+
+export const selectedPresetStore = new Map<string, SelectedPreset>();
+
+export type SelectedPreset<T = any> = {
+  preset: { label: string; status: number; response: T };
+  override?: (draft: { data: T }) => void;
+};
