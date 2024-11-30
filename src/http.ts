@@ -1,19 +1,18 @@
 // Main HTTP handler with preset capabilities.
 import { produce } from 'immer';
 import {
-  HttpHandler,
   HttpResponse,
   http as originalHttp,
   PathParams,
   ResponseResolver,
 } from 'msw';
+import { presetStore, SelectedPreset, selectedPresetStore } from './stores';
 import {
+  Http,
+  HttpMethodHandler,
   HttpMethodLiteral,
   PresetHandler,
-  HttpMethodHandler,
-  Http,
 } from './types';
-import { presetStore, selectedPresetStore, SelectedPreset } from './stores';
 
 /**
  * Proxy wrapping original HTTP methods to add preset capabilities.

@@ -59,7 +59,9 @@
     "vite-plugin-dts": "^2.0.0"
   },
   "dependencies": {
-    "msw": "^2.6.6"
+    "immer": "^10.1.1",
+    "msw": "^2.6.6",
+    "zustand": "^5.0.1"
   },
   "engines": {
     "node": ">=18",
