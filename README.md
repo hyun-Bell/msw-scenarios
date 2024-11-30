@@ -4,20 +4,30 @@
   <img src="https://github.com/user-attachments/assets/b67bbc6f-bb2b-46ec-8e4a-76652a777f04" alt="msw-scenarios Logo" width="400" style="border-radius: 15px;"/>
 </p>
 
+<div align="center">
+  <a href="#installation">Installation</a> • 
+  <a href="#key-features">Features</a> • 
+  <a href="#usage">Usage</a> • 
+  <a href="#api">API</a> • 
+  <a href="#examples">Examples</a>
+</div>
+
+<br />
+
 `msw-scenarios` is a **type-safe** preset management system built on top of [MSW (Mock Service Worker) 2.x.x](https://mswjs.io/). This library enhances MSW with a powerful preset system while maintaining complete TypeScript integration, ensuring that your API mocks are both flexible and type-safe during development and testing.
 
 > This library was inspired by the presentation at WOOWACON 2023:  
 > [프론트엔드 모킹 환경에 감칠맛 더하기](https://youtu.be/uiBCcmlJG4U?si=fZFCeQbxCCArA06a)
 
-## Key Features and Benefits
+## ✨ Key Features
 
-- **Enhanced Type Safety**: Built from the ground up with TypeScript, ensuring type safety across all your mocks
-- **MSW Compatibility**: Works with all MSW features while adding preset management capabilities
-- **Developer Friendly**: Simple, intuitive API that makes mock management easier
-- **Flexible Mocking**: Easily switch between different response scenarios during development and testing
-- **Production Ready**: Used in real-world applications with proven reliability
+- **🔒 Enhanced Type Safety**: Built from the ground up with TypeScript
+- **🔄 MSW Compatibility**: Works seamlessly with MSW 2.x.x
+- **👥 Profile Management**: Create and switch between mock scenarios
+- **🎮 UI Integration**: Build custom UI tools with state management API
+- **🛠 Developer Friendly**: Simple, intuitive API design
 
-## Installation
+## 📦 Installation
 
 ```bash
 npm install msw-scenarios msw
@@ -27,246 +37,376 @@ pnpm add msw-scenarios msw
 yarn add msw-scenarios msw
 ```
 
-## Basic Usage
+## 📚 Usage
 
-### 1. Define Your Handlers with Presets
+### Basic Handler Setup
 
 ```typescript
 import { http } from 'msw-scenarios';
 import { HttpResponse } from 'msw';
 
-// Define a handler with presets
 const userHandler = http
   .get('/api/user', () => {
-    return HttpResponse.json({ message: 'default response' });
+    return HttpResponse.json({ message: 'default' });
   })
   .presets(
     {
       label: 'success',
       status: 200,
-      response: { name: 'John Doe', age: 30 },
+      response: { name: 'John', age: 30 },
     },
     {
       label: 'error',
       status: 404,
-      response: { error: 'User not found' },
+      response: { error: 'Not found' },
     }
   );
 ```
 
-### 2. Set Up Your Handlers
+### Setting Up Handlers
 
 ```typescript
 import { extendHandlers } from 'msw-scenarios';
 import { setupWorker } from 'msw';
 
-const userHandlers = extendHandlers(userHandler);
-const worker = setupWorker(...userHandlers.handlers);
+const handlers = extendHandlers(userHandler);
+const worker = setupWorker(...handlers.handlers);
 
 worker.start();
 ```
 
-### 3. Use Different Presets
+### Using Presets
 
 ```typescript
-// Switch to success preset
-userHandlers.useMock({
+handlers.useMock({
   method: 'get',
   path: '/api/user',
   preset: 'success',
-});
-
-// Switch to error preset
-userHandlers.useMock({
-  method: 'get',
-  path: '/api/user',
-  preset: 'error',
+  override: ({ data }) => {
+    data.name = 'Jane'; // Modify response data
+  },
 });
 ```
 
-### 4. Using Multiple Handlers
-
-You can manage multiple handlers simultaneously using `extendHandlers`:
+### Using Profiles
 
 ```typescript
-import { extendHandlers, http } from 'msw-scenarios';
+const profiles = handlers.createMockProfiles(
+  {
+    name: 'Empty State',
+    actions: ({ useMock }) => {
+      useMock({
+        method: 'get',
+        path: '/api/user',
+        preset: 'success',
+        override: ({ data }) => {
+          data.name = 'New User';
+        },
+      });
+    },
+  },
+  {
+    name: 'Error State',
+    actions: ({ useMock }) => {
+      useMock({
+        method: 'get',
+        path: '/api/user',
+        preset: 'error',
+      });
+    },
+  }
+);
+
+// Apply profile
+profiles.useMock('Empty State');
+```
+
+## 🎯 Advanced Examples
+
+### Multiple Handlers with Type Safety
+
+```typescript
+import { http } from 'msw-scenarios';
 import { HttpResponse } from 'msw';
 
-// User handler definition
-export const userHandler = http
+// User handler
+const userHandler = http
   .get('/api/user', () => {
-    return HttpResponse.json({ message: 'default response' });
+    return HttpResponse.json({ message: 'default' });
   })
   .presets(
     {
-      label: 'success',
+      label: 'authenticated',
       status: 200,
-      response: { name: 'John Doe', age: 30 },
+      response: {
+        id: 1,
+        name: 'John Doe',
+        email: 'john@example.com',
+        role: 'admin'
+      }
     },
     {
-      label: 'error',
-      status: 404,
-      response: { error: 'User not found' },
+      label: 'unauthorized',
+      status: 401,
+      response: {
+        error: 'Unauthorized access'
+      }
     }
   );
 
-// Posts handler definition
-export const postHandler = http
+// Posts handler
+const postsHandler = http
   .get('/api/posts', () => {
     return HttpResponse.json({ posts: [] });
   })
   .presets(
     {
-      label: 'has posts',
+      label: 'with-posts',
       status: 200,
       response: {
         posts: [
-          { id: 1, title: 'First Post' },
-          { id: 2, title: 'Second Post' },
+          { id: 1, title: 'First Post', content: 'Hello' },
+          { id: 2, title: 'Second Post', content: 'World' }
         ],
-      },
+        total: 2
+      }
     },
     {
       label: 'empty',
       status: 200,
-      response: { posts: [] },
+      response: { posts: [], total: 0 }
     }
   );
 
-// Combine multiple handlers
-const multiHandlers = extendHandlers(userHandler, postHandler);
-
-// Use specific preset with override
-multiHandlers.useMock({
-  method: 'get',
-  path: '/api/user',
-  preset: 'success',
-  override: (draft) => {
-    draft.data = { name: 'Jane Doe', age: 25 };
-  },
-});
-```
-
-### 5. Dynamic Response Override
-
-```typescript
-userHandlers.useMock({
-  method: 'get',
-  path: '/api/user',
-  preset: 'success',
-  override: ({ data }) => {
-    data.name = 'Jane Doe'; // Modify the response data
-  },
-});
-```
-
-## Type Safety Features
-
-### Preset Label Type Safety
-
-TypeScript will ensure you only use defined preset labels:
-
-```typescript
-// ✅ Valid - 'success' is a defined preset
-userHandlers.useMock({
-  method: 'get',
-  path: '/api/user',
-  preset: 'success',
-});
-
-// ❌ TypeScript Error - 'unknown' is not a defined preset
-userHandlers.useMock({
-  method: 'get',
-  path: '/api/user',
-  preset: 'unknown',
-});
-```
-
-### Response Type Safety
-
-The response type is inferred from your preset definitions:
-
-```typescript
-const userHandler = http
-  .get('/api/user', () => {
-    return HttpResponse.json(null);
+// Comments handler
+const commentsHandler = http
+  .get('/api/posts/:postId/comments', () => {
+    return HttpResponse.json({ comments: [] });
   })
-  .presets({
-    label: 'success',
-    status: 200,
-    response: { name: 'John', age: 30 },
-  });
+  .presets(
+    {
+      label: 'has-comments',
+      status: 200,
+      response: {
+        comments: [
+          { id: 1, text: 'Great post!', author: 'Jane' },
+          { id: 2, text: 'Thanks!', author: 'John' }
+        ]
+      }
+    },
+    {
+      label: 'no-comments',
+      status: 200,
+      response: { comments: [] }
+    }
+  );
 
-const userHandlers = extendHandlers(userHandler);
+// Combine all handlers
+const handlers = extendHandlers(userHandler, postsHandler, commentsHandler);
 
-userHandlers.useMock({
-  method: 'get',
-  path: '/api/user',
-  preset: 'success',
+// TypeScript provides excellent autocompletion and type checking:
+handlers.useMock({
+  method: 'get',      // ✨ Autocompletes with only available methods
+  path: '/api/user',  // ✨ Autocompletes with only available paths
+  preset: 'authenticated' // ✨ Autocompletes with only valid presets for this endpoint
   override: ({ data }) => {
-    data.name = 'Jane'; // ✅ Valid
-    data.age = 25; // ✅ Valid
-    data.invalid = true; // ❌ TypeScript Error - Property 'invalid' does not exist
-  },
+    data.name = 'Jane Doe';  // ✨ TypeScript knows the shape of the response
+    data.invalid = true;     // ❌ TypeScript Error: Property 'invalid' does not exist
+  }
 });
+
+// Create comprehensive mocking profiles
+const profiles = handlers.createMockProfiles(
+  {
+    name: 'Authenticated User with Content',
+    actions: ({ useMock }) => {
+      // ✨ Full type safety and autocompletion in profile actions
+      useMock({
+        method: 'get',
+        path: '/api/user',
+        preset: 'authenticated',
+        override: ({ data }) => {
+          data.name = 'Jane Doe'; // Type-safe override
+        }
+      });
+
+      useMock({
+        method: 'get',
+        path: '/api/posts',
+        preset: 'with-posts'
+      });
+
+      useMock({
+        method: 'get',
+        path: '/api/posts/:postId/comments',
+        preset: 'has-comments'
+      });
+    }
+  },
+  {
+    name: 'Unauthorized User',
+    actions: ({ useMock, useRealAPI }) => {
+      useMock({
+        method: 'get',
+        path: '/api/user',
+        preset: 'unauthorized'
+      });
+
+      // Mix mock and real API calls
+      useRealAPI({
+        method: 'get',
+        path: '/api/posts'  // ✨ Path autocomplete works here too
+      });
+
+      useMock({
+        method: 'get',
+        path: '/api/posts/:postId/comments',
+        preset: 'no-comments'
+      });
+    }
+  }
+);
+
+// Type-safe profile switching
+profiles.useMock('Authenticated User with Content'); // ✨ Autocompletes available profile names
 ```
 
-## Using with Tests
+## 🎨 UI Integration
+
+### State Management API
 
 ```typescript
-import { setupServer } from 'msw/node';
-import { http, extendHandlers } from 'msw-scenarios';
-import { HttpResponse } from 'msw';
+import { mockingState } from 'msw-scenarios';
 
-const handler = http
-  .get('/api/test', () => {
-    return HttpResponse.json(null);
-  })
-  .presets({
-    label: 'success',
-    status: 200,
-    response: { data: 'test' },
-  });
+// Get current status
+const status = mockingState.getCurrentStatus();
 
-const testHandlers = extendHandlers(handler);
-const server = setupServer(...testHandlers.handlers);
+// Subscribe to changes
+const unsubscribe = mockingState.subscribeToChanges(
+  ({ mockingStatus, currentProfile }) => {
+    console.log('Status:', mockingStatus);
+    console.log('Profile:', currentProfile);
+  }
+);
 
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-test('should return preset data', async () => {
-  testHandlers.useMock({
-    method: 'get',
-    path: '/api/test',
-    preset: 'success',
-  });
-
-  const response = await fetch('/api/test');
-  const data = await response.json();
-
-  expect(data).toEqual({ data: 'test' });
-});
+// Control mocks
+mockingState.resetEndpoint('get', '/api/user');
+mockingState.resetAll();
 ```
 
-## Compatibility with MSW
+### React Integration Example
 
-`msw-scenarios` is fully compatible with MSW 2.x.x and provides access to all MSW features. You can:
+```tsx
+import { useEffect, useState } from 'react';
+import { mockingState } from 'msw-scenarios';
+import type { MockingStatus } from 'msw-scenarios';
 
-- Use all MSW request handlers (http, GraphQL)
-- Access MSW's context utilities
-- Use MSW's response composition tools
-- Leverage MSW's built-in testing utilities
+function MockingController({ handlers, profiles }) {
+  const [status, setStatus] = useState<MockingStatus[]>([]);
+  const [currentProfile, setCurrentProfile] = useState<string | null>(null);
 
-## React Integration Tool
+  useEffect(() => {
+    return mockingState.subscribeToChanges(
+      ({ mockingStatus, currentProfile }) => {
+        setStatus(mockingStatus);
+        setCurrentProfile(currentProfile);
+      }
+    );
+  }, []);
 
-For reference, check out msw-scenarios-react-tool React-based UI tool for managing msw-scenarios at [msw-scenarios-react-tool](https://github.com/manOfBackend/msw-scenarios-react-tool).
-This tool will provide a user-friendly interface for managing your mock scenarios directly in your React applications.
+  return (
+    <div className="mocking-controller">
+      {/* Profile Selector */}
+      <div>
+        <h3>Profiles</h3>
+        <select
+          value={currentProfile ?? ''}
+          onChange={(e) => profiles.useMock(e.target.value)}
+        >
+          <option value="">No Profile</option>
+          {profiles.getAvailableProfiles().map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-## License
+      {/* Endpoint Controls */}
+      <div>
+        <h3>Endpoints</h3>
+        {status.map(({ method, path, currentPreset }) => (
+          <div key={`${method}-${path}`} className="endpoint-control">
+            <div>
+              {method.toUpperCase()} {path}
+            </div>
+            <div>
+              <select
+                value={currentPreset ?? ''}
+                onChange={(e) => {
+                  if (e.target.value === '') {
+                    handlers.useRealAPI({ method, path });
+                  } else {
+                    handlers.useMock({
+                      method,
+                      path,
+                      preset: e.target.value,
+                    });
+                  }
+                }}
+              >
+                <option value="">Real API</option>
+                {handlers.handlers
+                  .find((h) => h._method === method && h._path === path)
+                  ?._presets.map((preset) => (
+                    <option key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </option>
+                  ))}
+              </select>
+              <button onClick={() => mockingState.resetEndpoint(method, path)}>
+                Reset
+              </button>
+            </div>
+          </div>
+        ))}
+        <button onClick={mockingState.resetAll}>Reset All</button>
+      </div>
+    </div>
+  );
+}
+```
+
+## 📝 Types
+
+The library provides full TypeScript support with the following key types:
+
+```typescript
+interface MockingState {
+  getCurrentStatus: () => Array<MockingStatus>;
+  getCurrentProfile: <Name extends string = string>() => Name | null;
+  subscribeToChanges: <Name extends string = string>(
+    callback: (state: {
+      mockingStatus: Array<MockingStatus>;
+      currentProfile: Name | null;
+    }) => void
+  ) => () => void;
+  resetAll: () => void;
+  resetEndpoint: (method: string, path: string) => void;
+  getEndpointState: (
+    method: string,
+    path: string
+  ) => SelectedPreset | undefined;
+  setCurrentProfile: <Name extends string = string>(
+    profileName: Name | null
+  ) => void;
+}
+```
+
+## 📄 License
 
 MIT
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
