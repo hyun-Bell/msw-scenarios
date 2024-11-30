@@ -87,7 +87,7 @@ describe('MSW Preset Extension', () => {
         createTestHandler(fullPath).presets({
           label: 'withCount',
           status: 200,
-          response: { message: 'preset', count: 0, a: 5 },
+          response: { message: 'preset', count: 0 },
         }),
       ];
 
@@ -101,7 +101,6 @@ describe('MSW Preset Extension', () => {
         preset: 'withCount',
         override: ({ data }) => {
           data.count = 42;
-          data.a = 10;
         },
       });
 
