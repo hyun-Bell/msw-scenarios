@@ -1,3 +1,4 @@
+import { SetupWorker } from 'msw/lib/browser';
 import type {
   ExtendedHandlers,
   ExtractMethod,
@@ -34,6 +35,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     (state: { status: MockingStatus[]; currentProfile: string | null }) => void
   >();
   let rootCurrentProfile: string | null = null;
+  let worker: SetupWorker | null = null;
 
   // 핸들러 메서드 확장
   handlers.forEach((handler) => {
@@ -54,6 +56,16 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       },
     });
   });
+
+  function setWorker(mswWorker: SetupWorker) {
+    worker = mswWorker;
+    updateWorker();
+  }
+
+  function updateWorker() {
+    if (!worker) return;
+    worker.use(...handlers);
+  }
 
   function notifySubscribers(
     handlers: readonly PresetHandler[],
@@ -90,6 +102,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       const state = getHandlerState(handler);
       state.currentPreset = undefined;
     });
+    updateWorker();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   }
 
@@ -118,6 +131,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       override: options.override,
     };
 
+    updateWorker();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
 
@@ -139,6 +153,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     const state = getHandlerState(handler);
     state.currentPreset = undefined;
 
+    updateWorker();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
 
@@ -159,6 +174,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         .filter((status) => status.currentPreset !== null);
     },
     reset: resetAllHandlers,
+    setWorker,
     subscribeToChanges: (callback) => {
       subscribers.add(callback);
       return () => {
