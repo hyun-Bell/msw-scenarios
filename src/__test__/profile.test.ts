@@ -176,4 +176,100 @@ describe('MSW Profile Tests', () => {
     const availableProfiles = profiles.getAvailableProfiles();
     expect(availableProfiles).toEqual(['Profile 1', 'Profile 2']);
   });
+
+  it('should clear existing presets when switching profiles', async () => {
+    // Setup handlers with multiple endpoints
+    const userHandler = http
+      .get('http://localhost/api/users', () => {
+        return HttpResponse.json({ message: 'default' });
+      })
+      .presets(
+        {
+          label: 'empty',
+          status: 200,
+          response: { users: [] },
+        },
+        {
+          label: 'withUsers',
+          status: 200,
+          response: { users: [{ id: 1, name: 'John' }] },
+        }
+      );
+
+    const postHandler = http
+      .get('http://localhost/api/posts', () => {
+        return HttpResponse.json({ message: 'default posts' });
+      })
+      .presets(
+        {
+          label: 'noPosts',
+          status: 200,
+          response: { posts: [] },
+        },
+        {
+          label: 'withPosts',
+          status: 200,
+          response: { posts: [{ id: 1, title: 'Post 1' }] },
+        }
+      );
+
+    const handlers = extendHandlers(userHandler, postHandler);
+
+    // Create profiles with different preset configurations
+    const profiles = handlers.createMockProfiles(
+      {
+        name: 'Profile 1',
+        actions: ({ useMock }) => {
+          useMock({
+            method: 'get',
+            path: 'http://localhost/api/users',
+            preset: 'withUsers',
+          });
+          useMock({
+            method: 'get',
+            path: 'http://localhost/api/posts',
+            preset: 'withPosts',
+          });
+        },
+      },
+      {
+        name: 'Profile 2',
+        actions: ({ useMock }) => {
+          useMock({
+            method: 'get',
+            path: 'http://localhost/api/users',
+            preset: 'empty',
+          });
+          // Note: posts endpoint is not configured in Profile 2
+        },
+      }
+    );
+
+    // Apply Profile 1
+    profiles.useMock('Profile 1');
+
+    // Verify Profile 1 settings
+    let usersResponse = await fetch('http://localhost/api/users');
+    let usersData = await usersResponse.json();
+    expect(usersData.users).toHaveLength(1);
+    expect(usersData.users[0].name).toBe('John');
+
+    let postsResponse = await fetch('http://localhost/api/posts');
+    let postsData = await postsResponse.json();
+    expect(postsData.posts).toHaveLength(1);
+    expect(postsData.posts[0].title).toBe('Post 1');
+
+    // Switch to Profile 2
+    profiles.useMock('Profile 2');
+
+    // Verify Profile 2 settings
+    usersResponse = await fetch('http://localhost/api/users');
+    usersData = await usersResponse.json();
+    expect(usersData.users).toHaveLength(0); // Should be empty array
+
+    // Posts endpoint should return to default handler
+    postsResponse = await fetch('http://localhost/api/posts');
+    postsData = await postsResponse.json();
+    expect(postsData).toEqual({ message: 'default posts' }); // Should be default response
+  });
 });

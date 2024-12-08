@@ -48,18 +48,25 @@ export const workerManager = {
   updateHandlers: () => {
     if (!currentInstance) return;
 
-    const activeHandlers = registeredHandlers.filter((handler) => {
+    // 모든 핸들러에 대해 프리셋 상태를 확인하고 적절한 핸들러를 생성
+    const updatedHandlers = registeredHandlers.map((handler) => {
       const state = mockingState.getEndpointState(
         handler._method,
         handler._path
       );
-      return state === undefined;
+
+      if (state) {
+        // 프리셋이 있으면 해당 프리셋으로 새 핸들러 생성
+        const presetHandlers = handler.presets(state.preset as any);
+        return Array.isArray(presetHandlers) ? presetHandlers[0] : handler;
+      }
+      return handler;
     });
 
     if (currentInstance.type === 'browser') {
-      currentInstance.instance.use(...activeHandlers);
+      currentInstance.instance.use(...updatedHandlers);
     } else {
-      currentInstance.instance.resetHandlers(...activeHandlers);
+      currentInstance.instance.resetHandlers(...updatedHandlers);
     }
   },
   resetHandlers: () => {

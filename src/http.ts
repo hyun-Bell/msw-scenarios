@@ -55,26 +55,50 @@ export const http = new Proxy(originalHttp, {
         return resolver(info);
       };
 
+      // 핸들러 생성
       const handler = Reflect.apply(originalMethod, target, [
         path,
         wrappedResolver,
       ]) as PresetHandler<T, K, P, string, T>;
 
-      handler._method = method;
-      handler._path = path;
-      handler._responseType = {} as T;
-      handler._presets = [];
+      // 핸들러 속성 초기화
+      Object.defineProperties(handler, {
+        _method: { value: method, enumerable: true },
+        _path: { value: path, enumerable: true },
+        _responseType: { value: {} as T, enumerable: true },
+        _presets: {
+          value: [],
+          enumerable: true,
+          writable: true, // presets 메서드에서 수정할 수 있도록 writable로 설정
+        },
+        presets: {
+          value: function <Labels extends string, Response>(
+            ...presetConfigs: {
+              label: Labels;
+              status: number;
+              response: Response;
+            }[]
+          ) {
+            if (presetConfigs.length > 0) {
+              // Store presets in presetActions
+              presetActions.setPresets(path, presetConfigs);
 
-      handler.presets = <Labels extends string, Response>(
-        ...presets: { label: Labels; status: number; response: Response }[]
-      ) => {
-        if (presets.length > 0) {
-          presetActions.setPresets(path, presets);
-          handler._presets = presets as any;
-          (handler as any)._labels = presets[0].label;
-        }
-        return handler as unknown as PresetHandler<T, K, P, Labels, Response>;
-      };
+              // 기존 프리셋에 새로운 프리셋 추가
+              this._presets = [...(this._presets || []), ...presetConfigs];
+
+              // Create a new handler with the same properties
+              const updatedHandler = Object.create(
+                Object.getPrototypeOf(this),
+                Object.getOwnPropertyDescriptors(this)
+              ) as PresetHandler<T, K, P, Labels, Response>;
+
+              return updatedHandler;
+            }
+            return this as unknown as PresetHandler<T, K, P, Labels, Response>;
+          },
+          enumerable: true,
+        },
+      });
 
       return handler;
     };

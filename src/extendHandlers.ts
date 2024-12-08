@@ -27,17 +27,18 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     Object.defineProperties(handler, {
       getCurrentPreset: {
         value: () => {
-          const selected = mockingState.getEndpointState(
+          const state = mockingState.getEndpointState(
             handler._method,
             handler._path
           );
-          return selected?.preset;
+          return state?.preset;
         },
         enumerable: true,
       },
       reset: {
         value: () => {
           mockingState.resetEndpoint(handler._method, handler._path);
+          workerManager.updateHandlers(); // handler reset 시 workerManager 업데이트
           notifySubscribers(handlers, rootCurrentProfile, subscribers);
         },
         enumerable: true,
@@ -191,17 +192,18 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
             throw new Error(`Profile not found: ${profileName}`);
           }
 
-          resetAllHandlers();
           currentProfile = profileName;
           rootCurrentProfile = profileName;
           mockingState.setCurrentProfile(profileName);
+
+          resetAllHandlers();
 
           profile.actions({
             handlers,
             useMock: useMockFunction,
             useRealAPI: useRealAPIFunction,
           });
-          workerManager.updateHandlers();
+
           notifyProfileSubscribers(currentProfile);
           notifySubscribers(handlers, currentProfile, subscribers);
         },
