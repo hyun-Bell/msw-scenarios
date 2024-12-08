@@ -1,5 +1,6 @@
 export { http } from './http';
 export { extendHandlers } from './extendHandlers';
+export { workerManager } from './worker';
 
 export type {
   HandlerInfo,
