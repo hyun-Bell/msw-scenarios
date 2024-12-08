@@ -1,5 +1,10 @@
-import { selectedPresetActions, selectedPresetStore } from './store/stores';
+import {
+  presetActions,
+  selectedPresetActions,
+  selectedPresetStore,
+} from './store/stores';
 import type { MockingState, MockingStatus } from './types';
+
 export const mockingState: MockingState = {
   getCurrentStatus: () => {
     const state = selectedPresetStore.getState();
@@ -38,7 +43,10 @@ export const mockingState: MockingState = {
       });
     });
   },
-  resetAll: () => selectedPresetActions.clearSelected(),
+  resetAll: () => {
+    presetActions.clearPresets();
+    selectedPresetActions.clearSelected();
+  },
   resetEndpoint: (method, path) =>
     selectedPresetActions.clearSelected(method, path),
   getEndpointState: (method, path) =>
