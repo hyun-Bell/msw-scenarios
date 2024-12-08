@@ -1,5 +1,4 @@
 import { HttpHandler, PathParams, ResponseResolver } from 'msw';
-import { SetupWorker } from 'msw/browser';
 
 export type HttpMethodLiteral =
   | 'get'
@@ -163,7 +162,6 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
     currentPreset: string | null;
   }>;
   reset: () => void;
-  setWorker: (worker: SetupWorker) => void;
   subscribeToChanges: (
     subscriber: (state: {
       status: Array<{
