@@ -1,4 +1,3 @@
-import { SetupWorker } from 'msw/lib/browser';
 import type {
   ExtendedHandlers,
   ExtractMethod,
@@ -9,24 +8,8 @@ import type {
   UseMockOptions,
   MockingStatus,
 } from './types';
-
-type HandlerState = {
-  currentPreset?: {
-    label: string;
-    status: number;
-    response: any;
-    override?: (draft: { data: any }) => void;
-  };
-};
-
-const handlerStates = new WeakMap<PresetHandler, HandlerState>();
-
-function getHandlerState(handler: PresetHandler) {
-  if (!handlerStates.has(handler)) {
-    handlerStates.set(handler, {});
-  }
-  return handlerStates.get(handler)!;
-}
+import { mockingState } from './mockingState';
+import { workerManager } from './worker';
 
 export function extendHandlers<H extends readonly PresetHandler[]>(
   ...handlers: H
@@ -35,37 +18,32 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     (state: { status: MockingStatus[]; currentProfile: string | null }) => void
   >();
   let rootCurrentProfile: string | null = null;
-  let worker: SetupWorker | null = null;
+
+  // Register handlers with worker manager
+  workerManager.registerHandlers([...handlers]);
 
   // 핸들러 메서드 확장
   handlers.forEach((handler) => {
     Object.defineProperties(handler, {
       getCurrentPreset: {
         value: () => {
-          return getHandlerState(handler).currentPreset;
+          const selected = mockingState.getEndpointState(
+            handler._method,
+            handler._path
+          );
+          return selected?.preset;
         },
         enumerable: true,
       },
       reset: {
         value: () => {
-          const state = getHandlerState(handler);
-          state.currentPreset = undefined;
+          mockingState.resetEndpoint(handler._method, handler._path);
           notifySubscribers(handlers, rootCurrentProfile, subscribers);
         },
         enumerable: true,
       },
     });
   });
-
-  function setWorker(mswWorker: SetupWorker) {
-    worker = mswWorker;
-    updateWorker();
-  }
-
-  function updateWorker() {
-    if (!worker) return;
-    worker.use(...handlers);
-  }
 
   function notifySubscribers(
     handlers: readonly PresetHandler[],
@@ -82,7 +60,9 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         .map((handler) => ({
           path: handler._path,
           method: handler._method,
-          currentPreset: getHandlerState(handler).currentPreset?.label ?? null,
+          currentPreset:
+            mockingState.getEndpointState(handler._method, handler._path)
+              ?.preset.label ?? null,
         }))
         .filter((status) => status.currentPreset !== null),
       currentProfile,
@@ -99,10 +79,9 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
 
   function resetAllHandlers() {
     handlers.forEach((handler) => {
-      const state = getHandlerState(handler);
-      state.currentPreset = undefined;
+      mockingState.resetEndpoint(handler._method, handler._path);
     });
-    updateWorker();
+    workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   }
 
@@ -125,13 +104,16 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`Preset not found: ${options.preset}`);
     }
 
-    const state = getHandlerState(handler);
-    state.currentPreset = {
-      ...preset,
+    mockingState.setSelected(options.method, options.path, {
+      preset: {
+        label: preset.label,
+        status: preset.status,
+        response: preset.response,
+      },
       override: options.override,
-    };
+    });
 
-    updateWorker();
+    workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
 
@@ -150,10 +132,8 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`No handler found for ${options.method} ${options.path}`);
     }
 
-    const state = getHandlerState(handler);
-    state.currentPreset = undefined;
-
-    updateWorker();
+    mockingState.resetEndpoint(options.method, options.path);
+    workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
 
@@ -163,18 +143,16 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     useRealAPI: useRealAPIFunction,
     getCurrentStatus: () => {
       return handlers
-        .map((handler) => {
-          const state = getHandlerState(handler);
-          return {
-            path: handler._path,
-            method: handler._method,
-            currentPreset: state.currentPreset?.label ?? null,
-          };
-        })
+        .map((handler) => ({
+          path: handler._path,
+          method: handler._method,
+          currentPreset:
+            mockingState.getEndpointState(handler._method, handler._path)
+              ?.preset.label ?? null,
+        }))
         .filter((status) => status.currentPreset !== null);
     },
     reset: resetAllHandlers,
-    setWorker,
     subscribeToChanges: (callback) => {
       subscribers.add(callback);
       return () => {
@@ -216,13 +194,14 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
           resetAllHandlers();
           currentProfile = profileName;
           rootCurrentProfile = profileName;
+          mockingState.setCurrentProfile(profileName);
 
           profile.actions({
             handlers,
             useMock: useMockFunction,
             useRealAPI: useRealAPIFunction,
           });
-
+          workerManager.updateHandlers();
           notifyProfileSubscribers(currentProfile);
           notifySubscribers(handlers, currentProfile, subscribers);
         },
@@ -232,6 +211,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
           resetAllHandlers();
           currentProfile = null;
           rootCurrentProfile = null;
+          mockingState.setCurrentProfile(null);
           notifyProfileSubscribers(null);
           notifySubscribers(handlers, null, subscribers);
         },
