@@ -46,6 +46,9 @@ export const http = new Proxy(originalHttp, {
 
           return new HttpResponse(JSON.stringify(response), {
             status: selected.preset.status,
+            headers: {
+              'Content-Type': 'application/json',
+            },
           });
         }
 
