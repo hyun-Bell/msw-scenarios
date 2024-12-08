@@ -1,6 +1,5 @@
-import { HttpMethodLiteral, PresetHandler } from '@/types';
-import { createStore } from './createStore';
 import { produce } from 'immer';
+import { createStore } from './createStore';
 
 export type Preset = {
   label: string;
@@ -23,6 +22,10 @@ export interface SelectedPresetState {
 }
 
 export const presetStore = createStore<PresetState>({ presets: {} });
+export const selectedPresetStore = createStore<SelectedPresetState>({
+  selected: {},
+  currentProfile: null,
+});
 
 export const presetActions = {
   setPresets: (path: string, presets: Preset[]) => {
@@ -35,11 +38,6 @@ export const presetActions = {
   getPresets: (path: string) => presetStore.getState().presets[path],
   clearPresets: () => presetStore.setState({ presets: {} }),
 };
-
-export const selectedPresetStore = createStore<SelectedPresetState>({
-  selected: {},
-  currentProfile: null,
-});
 
 export const selectedPresetActions = {
   setSelected: (method: string, path: string, preset: SelectedPreset) => {
@@ -66,12 +64,6 @@ export const selectedPresetActions = {
         }
       })
     );
-  },
-  clearAll: () => {
-    selectedPresetStore.setState({
-      selected: {},
-      currentProfile: null,
-    });
   },
   setCurrentProfile: (profileName: string | null) => {
     selectedPresetStore.setState(
