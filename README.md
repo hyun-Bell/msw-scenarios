@@ -41,29 +41,7 @@ yarn add msw-scenarios msw
 
 ### Basic Handler Setup
 
-```typescript
-import { http } from 'msw-scenarios';
-import { HttpResponse } from 'msw';
-
-const userHandler = http
-  .get('/api/user', () => {
-    return HttpResponse.json({ message: 'default' });
-  })
-  .presets(
-    {
-      label: 'success',
-      status: 200,
-      response: { name: 'John', age: 30 },
-    },
-    {
-      label: 'error',
-      status: 404,
-      response: { error: 'Not found' },
-    }
-  );
-```
-
-### Setting Up Handlers
+### Setting Up msw-scenarios
 
 ```typescript
 import { extendHandlers } from 'msw-scenarios';
@@ -72,7 +50,38 @@ import { setupWorker } from 'msw';
 const handlers = extendHandlers(userHandler);
 const worker = setupWorker(...handlers.handlers);
 
+// Register with workerManager
+workerManager.setupWorker(worker);
+
+// Start the worker
 worker.start();
+```
+
+#### For Node.js
+
+```typescript
+import { setupServer } from 'msw/node';
+import { workerManager } from 'msw-scenarios';
+import { handlers } from './mocks/handlers';
+
+// Create MSW server
+const server = setupServer();
+
+// Register with workerManager
+workerManager.setupServer(server);
+
+// Start the server in your test setup
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+});
+
+afterEach(() => {
+  workerManager.resetHandlers();
+});
+
+afterAll(() => {
+  server.close();
+});
 ```
 
 ### Using Presets
@@ -269,6 +278,133 @@ const profiles = handlers.createMockProfiles(
 
 // Type-safe profile switching
 profiles.useMock('Authenticated User with Content'); // ✨ Autocompletes available profile names
+```
+
+### Jest Test Examples
+
+```typescript
+import { HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
+import { http, extendHandlers, workerManager } from 'msw-scenarios';
+
+describe('API Mocking Tests', () => {
+  // Setup MSW server
+  const server = setupServer();
+
+  beforeAll(() => {
+    workerManager.setupServer(server);
+    server.listen({ onUnhandledRequest: 'error' });
+  });
+
+  afterEach(() => {
+    workerManager.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  it('should handle different API responses using presets', async () => {
+    // Define handler with presets
+    const userHandler = http
+      .get('/api/user', () => {
+        return HttpResponse.json({ message: 'default' });
+      })
+      .presets(
+        {
+          label: 'success',
+          status: 200,
+          response: { name: 'John', role: 'admin' },
+        },
+        {
+          label: 'error',
+          status: 404,
+          response: { error: 'User not found' },
+        }
+      );
+
+    // Create extended handlers
+    const handlers = extendHandlers(userHandler);
+
+    // Test success case
+    handlers.useMock({
+      method: 'get',
+      path: '/api/user',
+      preset: 'success',
+    });
+
+    let response = await fetch('/api/user');
+    let data = await response.json();
+    expect(data).toEqual({ name: 'John', role: 'admin' });
+
+    // Test error case
+    handlers.useMock({
+      method: 'get',
+      path: '/api/user',
+      preset: 'error',
+    });
+
+    response = await fetch('/api/user');
+    data = await response.json();
+    expect(data).toEqual({ error: 'User not found' });
+    expect(response.status).toBe(404);
+  });
+
+  it('should work with profiles for complex scenarios', async () => {
+    const userHandler = http
+      .get('/api/user', () => {
+        return HttpResponse.json({ message: 'default' });
+      })
+      .presets(
+        {
+          label: 'authenticated',
+          status: 200,
+          response: { name: 'John', isAuthenticated: true },
+        },
+        {
+          label: 'guest',
+          status: 200,
+          response: { name: 'Guest', isAuthenticated: false },
+        }
+      );
+
+    const handlers = extendHandlers(userHandler);
+    const profiles = handlers.createMockProfiles(
+      {
+        name: 'Authenticated User',
+        actions: ({ useMock }) => {
+          useMock({
+            method: 'get',
+            path: '/api/user',
+            preset: 'authenticated',
+          });
+        },
+      },
+      {
+        name: 'Guest User',
+        actions: ({ useMock }) => {
+          useMock({
+            method: 'get',
+            path: '/api/user',
+            preset: 'guest',
+          });
+        },
+      }
+    );
+
+    // Test authenticated profile
+    profiles.useMock('Authenticated User');
+    let response = await fetch('/api/user');
+    let data = await response.json();
+    expect(data.isAuthenticated).toBe(true);
+
+    // Test guest profile
+    profiles.useMock('Guest User');
+    response = await fetch('/api/user');
+    data = await response.json();
+    expect(data.isAuthenticated).toBe(false);
+  });
+});
 ```
 
 ## 🎨 UI Integration
