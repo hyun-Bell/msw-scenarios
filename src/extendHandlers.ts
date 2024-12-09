@@ -22,7 +22,6 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
   // Register handlers with worker manager
   workerManager.registerHandlers([...handlers]);
 
-  // 핸들러 메서드 확장
   handlers.forEach((handler) => {
     Object.defineProperties(handler, {
       getCurrentPreset: {
@@ -38,7 +37,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       reset: {
         value: () => {
           mockingState.resetEndpoint(handler._method, handler._path);
-          workerManager.updateHandlers(); // handler reset 시 workerManager 업데이트
+          workerManager.updateHandlers();
           notifySubscribers(handlers, rootCurrentProfile, subscribers);
         },
         enumerable: true,
@@ -192,11 +191,11 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
             throw new Error(`Profile not found: ${profileName}`);
           }
 
+          resetAllHandlers();
+
           currentProfile = profileName;
           rootCurrentProfile = profileName;
           mockingState.setCurrentProfile(profileName);
-
-          resetAllHandlers();
 
           profile.actions({
             handlers,
