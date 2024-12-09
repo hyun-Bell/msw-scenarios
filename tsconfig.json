@@ -14,6 +14,12 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "jest.config.js", ".eslintrc.js"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src",
+    "jest.config.js",
+    ".eslintrc.js",
+    "tests",
+    "tests/e2e/specs/**/*.spec.ts"
+  ],
+  "exclude": ["node_modules", "dist", "tests"]
 }
