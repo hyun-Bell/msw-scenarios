@@ -1,7 +1,6 @@
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { http, extendHandlers } from '..';
-import { mockingState } from '../mockingState';
+import { extendHandlers, http } from '..';
 import { workerManager } from '../worker';
 
 const server = setupServer();
