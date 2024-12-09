@@ -31,7 +31,7 @@ export const presetActions = {
   setPresets: (path: string, presets: Preset[]) => {
     presetStore.setState(
       produce((state: PresetState) => {
-        state.presets[path] = presets;
+        state.presets[path] = [...presets];
       })
     );
   },
@@ -44,7 +44,7 @@ export const selectedPresetActions = {
     const key = `${method}:${path}`;
     selectedPresetStore.setState(
       produce((state: SelectedPresetState) => {
-        state.selected[key] = preset;
+        state.selected[key] = { ...preset };
       })
     );
   },
