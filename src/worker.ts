@@ -2,6 +2,7 @@ import { SetupWorker } from 'msw/lib/browser';
 import { SetupServerApi } from 'msw/lib/node';
 import { PresetHandler } from './types';
 import { mockingState } from './mockingState';
+
 type Instance =
   | {
       type: 'browser';
@@ -32,42 +33,40 @@ export const workerManager = {
       instance: server,
     };
     if (registeredHandlers.length > 0) {
-      server.resetHandlers(...registeredHandlers);
+      server.use(...registeredHandlers);
     }
   },
   registerHandlers: (handlers: PresetHandler[]) => {
     registeredHandlers = handlers;
     if (currentInstance) {
-      if (currentInstance.type === 'browser') {
-        currentInstance.instance.use(...registeredHandlers);
-      } else {
-        currentInstance.instance.resetHandlers(...registeredHandlers);
-      }
+      currentInstance.instance.resetHandlers(); // Reset before registering new handlers
+      currentInstance.instance.use(...registeredHandlers);
     }
   },
   updateHandlers: () => {
     if (!currentInstance) return;
 
-    // 모든 핸들러에 대해 프리셋 상태를 확인하고 적절한 핸들러를 생성
-    const updatedHandlers = registeredHandlers.map((handler) => {
+    const activeHandlers = registeredHandlers.filter((handler) => {
       const state = mockingState.getEndpointState(
         handler._method,
         handler._path
       );
-
-      if (state) {
-        // 프리셋이 있으면 해당 프리셋으로 새 핸들러 생성
-        const presetHandlers = handler.presets(state.preset as any);
-        return Array.isArray(presetHandlers) ? presetHandlers[0] : handler;
-      }
-      return handler;
+      return state !== undefined;
     });
 
-    if (currentInstance.type === 'browser') {
-      currentInstance.instance.use(...updatedHandlers);
-    } else {
-      currentInstance.instance.resetHandlers(...updatedHandlers);
-    }
+    const remainingHandlers = registeredHandlers.filter((handler) => {
+      const state = mockingState.getEndpointState(
+        handler._method,
+        handler._path
+      );
+      return state === undefined;
+    });
+
+    const allHandlers = [...activeHandlers, ...remainingHandlers];
+
+    // Reset handlers before applying new ones to prevent stacking
+    currentInstance.instance.resetHandlers();
+    currentInstance.instance.use(...allHandlers);
   },
   resetHandlers: () => {
     if (currentInstance) {
