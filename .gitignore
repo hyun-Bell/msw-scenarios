@@ -26,3 +26,8 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+
+coverage
+
+tests/e2e/test-app/test-dist/
