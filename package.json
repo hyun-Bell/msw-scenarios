@@ -1,6 +1,6 @@
 {
   "name": "msw-scenarios",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "A scenario-based mocking library built on msw",
   "main": "dist/msw-scenarios.umd.js",
   "module": "dist/msw-scenarios.es.js",
