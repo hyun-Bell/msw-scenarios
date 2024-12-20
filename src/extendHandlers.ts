@@ -28,7 +28,9 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         value: () => {
           const state = mockingState.getEndpointState(
             handler._method,
-            handler._path
+            typeof handler._path === 'string'
+              ? handler._path
+              : handler._path.toString()
           );
           return state?.preset;
         },
@@ -36,7 +38,12 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       },
       reset: {
         value: () => {
-          mockingState.resetEndpoint(handler._method, handler._path);
+          mockingState.resetEndpoint(
+            handler._method,
+            typeof handler._path === 'string'
+              ? handler._path
+              : handler._path.toString()
+          );
           workerManager.updateHandlers();
           notifySubscribers(handlers, rootCurrentProfile, subscribers);
         },
@@ -58,11 +65,18 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     const state = {
       status: handlers
         .map((handler) => ({
-          path: handler._path,
+          path:
+            typeof handler._path === 'string'
+              ? handler._path
+              : handler._path.toString(),
           method: handler._method,
           currentPreset:
-            mockingState.getEndpointState(handler._method, handler._path)
-              ?.preset.label ?? null,
+            mockingState.getEndpointState(
+              handler._method,
+              typeof handler._path === 'string'
+                ? handler._path
+                : handler._path.toString()
+            )?.preset.label ?? null,
         }))
         .filter((status) => status.currentPreset !== null),
       currentProfile,
@@ -79,7 +93,12 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
 
   function resetAllHandlers() {
     handlers.forEach((handler) => {
-      mockingState.resetEndpoint(handler._method, handler._path);
+      mockingState.resetEndpoint(
+        handler._method,
+        typeof handler._path === 'string'
+          ? handler._path
+          : handler._path.toString()
+      );
     });
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -104,14 +123,18 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`Preset not found: ${options.preset}`);
     }
 
-    mockingState.setSelected(options.method, options.path, {
-      preset: {
-        label: preset.label,
-        status: preset.status,
-        response: preset.response,
-      },
-      override: options.override,
-    });
+    mockingState.setSelected(
+      options.method,
+      typeof options.path === 'string' ? options.path : options.path.toString(),
+      {
+        preset: {
+          label: preset.label,
+          status: preset.status,
+          response: preset.response,
+        },
+        override: options.override,
+      }
+    );
 
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -132,7 +155,10 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`No handler found for ${options.method} ${options.path}`);
     }
 
-    mockingState.resetEndpoint(options.method, options.path);
+    mockingState.resetEndpoint(
+      options.method,
+      typeof options.path === 'string' ? options.path : options.path.toString()
+    );
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
@@ -144,11 +170,18 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     getCurrentStatus: () => {
       return handlers
         .map((handler) => ({
-          path: handler._path,
+          path:
+            typeof handler._path === 'string'
+              ? handler._path
+              : handler._path.toString(),
           method: handler._method,
           currentPreset:
-            mockingState.getEndpointState(handler._method, handler._path)
-              ?.preset.label ?? null,
+            mockingState.getEndpointState(
+              handler._method,
+              typeof handler._path === 'string'
+                ? handler._path
+                : handler._path.toString()
+            )?.preset.label ?? null,
         }))
         .filter((status) => status.currentPreset !== null);
     },

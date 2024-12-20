@@ -137,9 +137,12 @@ describe('MSW Preset Handler Tests', () => {
   describe('subscription', () => {
     it('should notify subscribers of preset changes', () => {
       const userHandler = http
-        .get('http://localhost/api/users', () => {
-          return HttpResponse.json({ message: 'default' });
-        })
+        .get<never, never, { message: string }, 'http://localhost/api/users'>(
+          'http://localhost/api/users',
+          () => {
+            return HttpResponse.json({ message: 'default' });
+          }
+        )
         .presets({
           label: 'empty',
           status: 200,

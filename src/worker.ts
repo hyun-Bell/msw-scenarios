@@ -49,7 +49,9 @@ export const workerManager = {
     const activeHandlers = registeredHandlers.filter((handler) => {
       const state = mockingState.getEndpointState(
         handler._method,
-        handler._path
+        typeof handler._path === 'string'
+          ? handler._path
+          : handler._path.toString()
       );
       return state !== undefined;
     });
@@ -57,14 +59,15 @@ export const workerManager = {
     const remainingHandlers = registeredHandlers.filter((handler) => {
       const state = mockingState.getEndpointState(
         handler._method,
-        handler._path
+        typeof handler._path === 'string'
+          ? handler._path
+          : handler._path.toString()
       );
       return state === undefined;
     });
 
     const allHandlers = [...activeHandlers, ...remainingHandlers];
 
-    // Reset handlers before applying new ones to prevent stacking
     currentInstance.instance.resetHandlers();
     currentInstance.instance.use(...allHandlers);
   },

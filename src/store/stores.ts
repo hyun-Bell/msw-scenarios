@@ -1,5 +1,6 @@
 import { produce } from 'immer';
 import { createStore } from './createStore';
+import { Path } from 'msw';
 
 export type Preset = {
   label: string;

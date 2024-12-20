@@ -1,4 +1,11 @@
-import { HttpHandler, PathParams, ResponseResolver } from 'msw';
+import {
+  DefaultBodyType,
+  HttpHandler,
+  Path,
+  PathParams,
+  ResponseResolver,
+} from 'msw';
+import { HttpRequestResolverExtras } from 'msw/lib/core/handlers/HttpHandler';
 
 export type HttpMethodLiteral =
   | 'get'
@@ -10,16 +17,40 @@ export type HttpMethodLiteral =
   | 'head'
   | 'all';
 
+export type HttpMethodHandler<M extends HttpMethodLiteral> = <
+  Params extends PathParams<keyof Params> = PathParams,
+  RequestBodyType extends DefaultBodyType = DefaultBodyType,
+  ResponseBodyType extends DefaultBodyType = undefined,
+  RequestPath extends Path = Path,
+>(
+  path: RequestPath,
+  resolver: ResponseResolver<
+    HttpRequestResolverExtras<Params>,
+    RequestBodyType,
+    ResponseBodyType
+  >
+) => PresetHandler<
+  ResponseBodyType,
+  M,
+  RequestPath,
+  string,
+  ResponseBodyType,
+  Params,
+  RequestBodyType
+>;
+
 export interface PresetHandler<
   T = any,
   M extends HttpMethodLiteral = HttpMethodLiteral,
-  P extends string = string,
+  P extends Path = Path,
   L extends string = string,
   R = any,
+  Params extends PathParams<keyof Params> = PathParams,
+  RequestBody extends DefaultBodyType = DefaultBodyType,
 > extends HttpHandler {
-  presets: <Labels extends string, Response>(
+  presets: <Labels extends string, Response extends DefaultBodyType>(
     ...presets: { label: Labels; status: number; response: Response }[]
-  ) => PresetHandler<T, M, P, Labels, Response>;
+  ) => PresetHandler<T, M, P, Labels, Response, Params, RequestBody>;
   _method: M;
   _path: P;
   _responseType: T;
@@ -28,14 +59,6 @@ export interface PresetHandler<
   getCurrentPreset: () => { label: L; status: number; response: R } | undefined;
   reset: () => void;
 }
-
-export type HttpMethodHandler<M extends HttpMethodLiteral> = <
-  T,
-  P extends string,
->(
-  path: P,
-  resolver: ResponseResolver<any, PathParams<string>>
-) => PresetHandler<T, M, P>;
 
 export interface Http {
   get: HttpMethodHandler<'get'>;
@@ -141,6 +164,7 @@ export interface MockProfileManager<
   getAvailableProfiles: () => Array<Profiles[number]['name']>;
   getCurrentProfile: () => Profiles[number]['name'] | null;
 }
+
 export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
   handlers: H;
   useMock: <
@@ -180,6 +204,7 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
     ...profiles: Profiles
   ) => ProfileManager<Profiles>;
 }
+
 export interface ProfileManager<
   Profiles extends readonly MockProfile<any, any>[],
 > {
