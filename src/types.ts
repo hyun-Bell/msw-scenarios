@@ -1,11 +1,11 @@
-import {
+import type {
   DefaultBodyType,
   HttpHandler,
   Path,
   PathParams,
   ResponseResolver,
 } from 'msw';
-import { HttpRequestResolverExtras } from 'msw/lib/core/handlers/HttpHandler';
+import type { HttpRequestResolverExtras } from 'msw/lib/core/handlers/HttpHandler';
 
 export type HttpMethodLiteral =
   | 'get'
@@ -49,12 +49,12 @@ export interface PresetHandler<
   RequestBody extends DefaultBodyType = DefaultBodyType,
 > extends HttpHandler {
   presets: <Labels extends string, Response extends DefaultBodyType>(
-    ...presets: { label: Labels; status: number; response: Response }[]
+    ...presets: Array<{ label: Labels; status: number; response: Response }>
   ) => PresetHandler<T, M, P, Labels, Response, Params, RequestBody>;
   _method: M;
   _path: P;
   _responseType: T;
-  _presets: { label: L; status: number; response: R }[];
+  _presets: Array<{ label: L; status: number; response: R }>;
   _labels: L;
   getCurrentPreset: () => { label: L; status: number; response: R } | undefined;
   reset: () => void;
@@ -138,7 +138,7 @@ export interface MockProfile<
 }
 
 export interface UseMockOptions<
-  H extends readonly [...any[]],
+  H extends readonly PresetHandler[],
   M extends ExtractMethod<H[number]>,
   P extends ExtractPath<H[number]>,
   L extends ExtractPresetLabels<

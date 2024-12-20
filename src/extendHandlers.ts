@@ -11,6 +11,40 @@ import type {
 import { mockingState } from './mockingState';
 import { workerManager } from './worker';
 
+function pathToString(path: string | { toString(): string }): string {
+  return typeof path === 'string' ? path : path.toString();
+}
+
+function notifySubscribers(
+  handlers: readonly PresetHandler[],
+  currentProfile: string | null,
+  subscribers: Set<
+    (state: { status: MockingStatus[]; currentProfile: string | null }) => void
+  >
+) {
+  const status = handlers
+    .map((handler) => ({
+      path: pathToString(handler._path),
+      method: handler._method,
+      currentPreset:
+        mockingState.getEndpointState(
+          handler._method,
+          pathToString(handler._path)
+        )?.preset.label ?? null,
+    }))
+    .filter((status) => status.currentPreset !== null);
+
+  const state = { status, currentProfile };
+
+  for (const subscriber of subscribers) {
+    try {
+      subscriber(state);
+    } catch (error) {
+      console.error('Error in mock state subscriber:', error);
+    }
+  }
+}
+
 export function extendHandlers<H extends readonly PresetHandler[]>(
   ...handlers: H
 ): ExtendedHandlers<H> {
@@ -19,7 +53,6 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
   >();
   let rootCurrentProfile: string | null = null;
 
-  // Register handlers with worker manager
   workerManager.registerHandlers([...handlers]);
 
   handlers.forEach((handler) => {
@@ -28,9 +61,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         value: () => {
           const state = mockingState.getEndpointState(
             handler._method,
-            typeof handler._path === 'string'
-              ? handler._path
-              : handler._path.toString()
+            pathToString(handler._path)
           );
           return state?.preset;
         },
@@ -40,9 +71,7 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         value: () => {
           mockingState.resetEndpoint(
             handler._method,
-            typeof handler._path === 'string'
-              ? handler._path
-              : handler._path.toString()
+            pathToString(handler._path)
           );
           workerManager.updateHandlers();
           notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -52,53 +81,9 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     });
   });
 
-  function notifySubscribers(
-    handlers: readonly PresetHandler[],
-    currentProfile: string | null,
-    subscribers: Set<
-      (state: {
-        status: MockingStatus[];
-        currentProfile: string | null;
-      }) => void
-    >
-  ) {
-    const state = {
-      status: handlers
-        .map((handler) => ({
-          path:
-            typeof handler._path === 'string'
-              ? handler._path
-              : handler._path.toString(),
-          method: handler._method,
-          currentPreset:
-            mockingState.getEndpointState(
-              handler._method,
-              typeof handler._path === 'string'
-                ? handler._path
-                : handler._path.toString()
-            )?.preset.label ?? null,
-        }))
-        .filter((status) => status.currentPreset !== null),
-      currentProfile,
-    };
-
-    for (const subscriber of subscribers) {
-      try {
-        subscriber(state);
-      } catch (error) {
-        console.error('Error in mock state subscriber:', error);
-      }
-    }
-  }
-
   function resetAllHandlers() {
     handlers.forEach((handler) => {
-      mockingState.resetEndpoint(
-        handler._method,
-        typeof handler._path === 'string'
-          ? handler._path
-          : handler._path.toString()
-      );
+      mockingState.resetEndpoint(handler._method, pathToString(handler._path));
     });
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -123,18 +108,14 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`Preset not found: ${options.preset}`);
     }
 
-    mockingState.setSelected(
-      options.method,
-      typeof options.path === 'string' ? options.path : options.path.toString(),
-      {
-        preset: {
-          label: preset.label,
-          status: preset.status,
-          response: preset.response,
-        },
-        override: options.override,
-      }
-    );
+    mockingState.setSelected(options.method, pathToString(options.path), {
+      preset: {
+        label: preset.label,
+        status: preset.status,
+        response: preset.response,
+      },
+      override: options.override,
+    });
 
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -155,13 +136,74 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`No handler found for ${options.method} ${options.path}`);
     }
 
-    mockingState.resetEndpoint(
-      options.method,
-      typeof options.path === 'string' ? options.path : options.path.toString()
-    );
+    mockingState.resetEndpoint(options.method, pathToString(options.path));
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
+
+  function createMockProfiles<
+    Name extends string,
+    Profile extends MockProfile<H, Name>,
+    Profiles extends readonly [Profile, ...Profile[]],
+  >(...profiles: Profiles): ProfileManager<Profiles> {
+    let currentProfile: Profiles[number]['name'] | null = null;
+    const profileSubscribers = new Set<
+      (currentProfile: Profiles[number]['name'] | null) => void
+    >();
+
+    function notifyProfileSubscribers(
+      profile: Profiles[number]['name'] | null
+    ) {
+      for (const subscriber of profileSubscribers) {
+        try {
+          subscriber(profile);
+        } catch (error) {
+          console.error('Error in profile subscriber:', error);
+        }
+      }
+    }
+
+    return {
+      profiles,
+      useMock(profileName) {
+        const profile = profiles.find((p) => p.name === profileName);
+        if (!profile) {
+          throw new Error(`Profile not found: ${profileName}`);
+        }
+
+        resetAllHandlers();
+
+        currentProfile = profileName;
+        rootCurrentProfile = profileName;
+        mockingState.setCurrentProfile(profileName);
+
+        profile.actions({
+          handlers,
+          useMock: useMockFunction,
+          useRealAPI: useRealAPIFunction,
+        });
+
+        notifyProfileSubscribers(currentProfile);
+        notifySubscribers(handlers, currentProfile, subscribers);
+      },
+      getAvailableProfiles: () => profiles.map((p) => p.name),
+      getCurrentProfile: () => currentProfile,
+      reset: () => {
+        resetAllHandlers();
+        currentProfile = null;
+        rootCurrentProfile = null;
+        mockingState.setCurrentProfile(null);
+        notifyProfileSubscribers(null);
+        notifySubscribers(handlers, null, subscribers);
+      },
+      subscribeToChanges: (callback) => {
+        profileSubscribers.add(callback);
+        return () => {
+          profileSubscribers.delete(callback);
+        };
+      },
+    };
+  }
 
   return {
     handlers,
@@ -170,17 +212,12 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     getCurrentStatus: () => {
       return handlers
         .map((handler) => ({
-          path:
-            typeof handler._path === 'string'
-              ? handler._path
-              : handler._path.toString(),
+          path: pathToString(handler._path),
           method: handler._method,
           currentPreset:
             mockingState.getEndpointState(
               handler._method,
-              typeof handler._path === 'string'
-                ? handler._path
-                : handler._path.toString()
+              pathToString(handler._path)
             )?.preset.label ?? null,
         }))
         .filter((status) => status.currentPreset !== null);
@@ -192,70 +229,6 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
         subscribers.delete(callback);
       };
     },
-    createMockProfiles: <
-      Name extends string,
-      Profile extends MockProfile<H, Name>,
-      Profiles extends readonly [Profile, ...Profile[]],
-    >(
-      ...profiles: Profiles
-    ): ProfileManager<Profiles> => {
-      let currentProfile: Profiles[number]['name'] | null = null;
-      const profileSubscribers = new Set<
-        (currentProfile: Profiles[number]['name'] | null) => void
-      >();
-
-      function notifyProfileSubscribers(
-        profile: Profiles[number]['name'] | null
-      ) {
-        for (const subscriber of profileSubscribers) {
-          try {
-            subscriber(profile);
-          } catch (error) {
-            console.error('Error in profile subscriber:', error);
-          }
-        }
-      }
-
-      return {
-        profiles,
-        useMock(profileName) {
-          const profile = profiles.find((p) => p.name === profileName);
-          if (!profile) {
-            throw new Error(`Profile not found: ${profileName}`);
-          }
-
-          resetAllHandlers();
-
-          currentProfile = profileName;
-          rootCurrentProfile = profileName;
-          mockingState.setCurrentProfile(profileName);
-
-          profile.actions({
-            handlers,
-            useMock: useMockFunction,
-            useRealAPI: useRealAPIFunction,
-          });
-
-          notifyProfileSubscribers(currentProfile);
-          notifySubscribers(handlers, currentProfile, subscribers);
-        },
-        getAvailableProfiles: () => profiles.map((p) => p.name),
-        getCurrentProfile: () => currentProfile,
-        reset: () => {
-          resetAllHandlers();
-          currentProfile = null;
-          rootCurrentProfile = null;
-          mockingState.setCurrentProfile(null);
-          notifyProfileSubscribers(null);
-          notifySubscribers(handlers, null, subscribers);
-        },
-        subscribeToChanges: (callback) => {
-          profileSubscribers.add(callback);
-          return () => {
-            profileSubscribers.delete(callback);
-          };
-        },
-      };
-    },
+    createMockProfiles,
   };
 }
