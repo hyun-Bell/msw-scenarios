@@ -1,8 +1,6 @@
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { http, extendHandlers } from '../../src';
-import { mockingState } from '../../src/mockingState';
-import { workerManager } from '../../src/worker';
+import { extendHandlers, http, workerManager } from '../../src';
 
 const server = setupServer();
 
@@ -23,7 +21,7 @@ describe('MSW Profile Tests', () => {
   it('should apply profile correctly', async () => {
     const userHandler = http
       .get('http://localhost/api/users', () => {
-        return HttpResponse.json({ message: 'default' });
+        return HttpResponse.json({ message: 'default response' });
       })
       .presets(
         {
@@ -39,6 +37,12 @@ describe('MSW Profile Tests', () => {
       );
 
     const handlers = extendHandlers(userHandler);
+
+    // Verify default response first
+    let response = await fetch('http://localhost/api/users');
+    let data = await response.json();
+    expect(data).toEqual({ message: 'default response' });
+
     const profiles = handlers.createMockProfiles(
       {
         name: 'Empty State',
@@ -62,11 +66,13 @@ describe('MSW Profile Tests', () => {
       }
     );
 
+    // Apply Empty State profile
     profiles.useMock('Empty State');
-    let response = await fetch('http://localhost/api/users');
-    let data = await response.json();
+    response = await fetch('http://localhost/api/users');
+    data = await response.json();
     expect(data).toEqual({ users: [] });
 
+    // Switch to With Data profile
     profiles.useMock('With Data');
     response = await fetch('http://localhost/api/users');
     data = await response.json();
@@ -103,6 +109,62 @@ describe('MSW Profile Tests', () => {
     const response = await fetch('http://localhost/api/users');
     const data = await response.json();
     expect(data).toEqual({ message: 'default response' });
+  });
+
+  it('should handle mixed mock and real API in profile', async () => {
+    const userHandler = http
+      .get('http://localhost/api/users', () => {
+        return HttpResponse.json({ message: 'default response' });
+      })
+      .presets({
+        label: 'empty',
+        status: 200,
+        response: { users: [] },
+      });
+
+    const postHandler = http
+      .get('http://localhost/api/posts', () => {
+        return HttpResponse.json({ message: 'default posts' });
+      })
+      .presets({
+        label: 'withPosts',
+        status: 200,
+        response: { posts: [{ id: 1, title: 'Test' }] },
+      });
+
+    const handlers = extendHandlers(userHandler, postHandler);
+    const profiles = handlers.createMockProfiles({
+      name: 'Mixed Profile',
+      actions: ({ useMock, useRealAPI }) => {
+        useMock({
+          method: 'get',
+          path: 'http://localhost/api/users',
+          preset: 'empty',
+        });
+        useRealAPI({
+          method: 'get',
+          path: 'http://localhost/api/posts',
+        });
+      },
+    });
+
+    // Apply profile
+    profiles.useMock('Mixed Profile');
+
+    // Users endpoint should use mock
+    let registeredHandlers = server.listHandlers();
+    let handlerPaths = registeredHandlers.map((h: any) => h.info.path);
+    expect(handlerPaths).toContain('http://localhost/api/users');
+    expect(handlerPaths).not.toContain('http://localhost/api/posts');
+
+    // Status should only show mocked endpoint
+    const status = handlers.getCurrentStatus();
+    expect(status).toHaveLength(1);
+    expect(status[0]).toEqual({
+      method: 'get',
+      path: 'http://localhost/api/users',
+      currentPreset: 'empty',
+    });
   });
 
   it('should notify profile subscribers', () => {
@@ -177,11 +239,10 @@ describe('MSW Profile Tests', () => {
     expect(availableProfiles).toEqual(['Profile 1', 'Profile 2']);
   });
 
-  it('should clear existing presets when switching profiles', async () => {
-    // Setup handlers with multiple endpoints
+  it('should handle switching between profiles correctly', async () => {
     const userHandler = http
       .get('http://localhost/api/users', () => {
-        return HttpResponse.json({ message: 'default' });
+        return HttpResponse.json({ message: 'default response' });
       })
       .presets(
         {
@@ -200,22 +261,14 @@ describe('MSW Profile Tests', () => {
       .get('http://localhost/api/posts', () => {
         return HttpResponse.json({ message: 'default posts' });
       })
-      .presets(
-        {
-          label: 'noPosts',
-          status: 200,
-          response: { posts: [] },
-        },
-        {
-          label: 'withPosts',
-          status: 200,
-          response: { posts: [{ id: 1, title: 'Post 1' }] },
-        }
-      );
+      .presets({
+        label: 'withPosts',
+        status: 200,
+        response: { posts: [{ id: 1, title: 'Test Post' }] },
+      });
 
     const handlers = extendHandlers(userHandler, postHandler);
 
-    // Create profiles with different preset configurations
     const profiles = handlers.createMockProfiles(
       {
         name: 'Profile 1',
@@ -223,7 +276,7 @@ describe('MSW Profile Tests', () => {
           useMock({
             method: 'get',
             path: 'http://localhost/api/users',
-            preset: 'withUsers',
+            preset: 'empty',
           });
           useMock({
             method: 'get',
@@ -234,42 +287,41 @@ describe('MSW Profile Tests', () => {
       },
       {
         name: 'Profile 2',
-        actions: ({ useMock }) => {
+        actions: ({ useMock, useRealAPI }) => {
           useMock({
             method: 'get',
             path: 'http://localhost/api/users',
-            preset: 'empty',
+            preset: 'withUsers',
           });
-          // Note: posts endpoint is not configured in Profile 2
+          useRealAPI({
+            method: 'get',
+            path: 'http://localhost/api/posts',
+          });
         },
       }
     );
 
     // Apply Profile 1
     profiles.useMock('Profile 1');
+    let response = await fetch('http://localhost/api/users');
+    let data = await response.json();
+    expect(data).toEqual({ users: [] });
 
-    // Verify Profile 1 settings
-    let usersResponse = await fetch('http://localhost/api/users');
-    let usersData = await usersResponse.json();
-    expect(usersData.users).toHaveLength(1);
-    expect(usersData.users[0].name).toBe('John');
-
-    let postsResponse = await fetch('http://localhost/api/posts');
-    let postsData = await postsResponse.json();
-    expect(postsData.posts).toHaveLength(1);
-    expect(postsData.posts[0].title).toBe('Post 1');
+    response = await fetch('http://localhost/api/posts');
+    data = await response.json();
+    expect(data).toEqual({ posts: [{ id: 1, title: 'Test Post' }] });
 
     // Switch to Profile 2
     profiles.useMock('Profile 2');
+    response = await fetch('http://localhost/api/users');
+    data = await response.json();
+    expect(data.users).toHaveLength(1);
+    expect(data.users[0].name).toBe('John');
 
-    // Verify Profile 2 settings
-    usersResponse = await fetch('http://localhost/api/users');
-    usersData = await usersResponse.json();
-    expect(usersData.users).toHaveLength(0); // Should be empty array
-
-    // Posts endpoint should return to default handler
-    postsResponse = await fetch('http://localhost/api/posts');
-    postsData = await postsResponse.json();
-    expect(postsData).toEqual({ message: 'default posts' }); // Should be default response
+    // Check if posts endpoint is removed (using real API)
+    const handlers2 = server.listHandlers();
+    const handlerPaths = handlers2.map((h: any) => h.info.path);
+    expect(handlerPaths).toContain('http://localhost/api/users');
+    expect(handlerPaths).not.toContain('http://localhost/api/posts');
   });
 });

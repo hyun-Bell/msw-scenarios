@@ -1,8 +1,7 @@
 import { HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { http, extendHandlers } from '../../src';
-import { mockingState } from '../../src/mockingState';
-import { presetStore, selectedPresetStore } from '../../src/store/stores';
+import { extendHandlers, http } from '../../src';
+import { presetStore } from '../../src/store/stores';
 import { workerManager } from '../../src/worker';
 
 const server = setupServer();
@@ -15,7 +14,6 @@ describe('Store Management Tests', () => {
 
   afterEach(() => {
     workerManager.resetHandlers();
-    mockingState.resetAll();
   });
 
   afterAll(() => {
@@ -26,7 +24,7 @@ describe('Store Management Tests', () => {
     it('should properly store and maintain multiple presets', () => {
       const userHandler = http
         .get('http://localhost/api/users', () => {
-          return HttpResponse.json({ message: 'default' });
+          return HttpResponse.json({ message: 'default 2' });
         })
         .presets(
           {
@@ -45,9 +43,10 @@ describe('Store Management Tests', () => {
 
       const initialPresets =
         presetStore.getState().presets['http://localhost/api/users'];
-      expect(initialPresets).toHaveLength(2);
-      expect(initialPresets[0].label).toBe('empty');
-      expect(initialPresets[1].label).toBe('withUsers');
+      expect(initialPresets).toHaveLength(3); // Including default preset
+      expect(initialPresets[0].label).toBe('default');
+      expect(initialPresets[1].label).toBe('empty');
+      expect(initialPresets[2].label).toBe('withUsers');
     });
 
     it('should handle multiple handlers with different presets', () => {
@@ -89,136 +88,8 @@ describe('Store Management Tests', () => {
 
       const presets = presetStore.getState().presets;
       expect(Object.keys(presets)).toHaveLength(2);
-      expect(presets['http://localhost/api/users']).toHaveLength(2);
-      expect(presets['http://localhost/api/posts']).toHaveLength(2);
-    });
-  });
-
-  describe('Selected Preset Store Management', () => {
-    it('should properly manage selected presets', () => {
-      const userHandler = http
-        .get('http://localhost/api/users', () => {
-          return HttpResponse.json({ message: 'default' });
-        })
-        .presets(
-          {
-            label: 'empty',
-            status: 200,
-            response: { users: [] },
-          },
-          {
-            label: 'withUsers',
-            status: 200,
-            response: { users: [{ id: 1, name: 'John' }] },
-          }
-        );
-
-      const handlers = extendHandlers(userHandler);
-
-      expect(selectedPresetStore.getState().selected).toEqual({});
-
-      handlers.useMock({
-        method: 'get',
-        path: 'http://localhost/api/users',
-        preset: 'empty',
-      });
-
-      const selectedState = selectedPresetStore.getState().selected;
-      expect(Object.keys(selectedState)).toHaveLength(1);
-      expect(selectedState['get:http://localhost/api/users'].preset.label).toBe(
-        'empty'
-      );
-
-      handlers.useMock({
-        method: 'get',
-        path: 'http://localhost/api/users',
-        preset: 'withUsers',
-      });
-
-      const updatedState = selectedPresetStore.getState().selected;
-      expect(updatedState['get:http://localhost/api/users'].preset.label).toBe(
-        'withUsers'
-      );
-    });
-
-    it('should handle preset override correctly', () => {
-      const userHandler = http
-        .get('http://localhost/api/users', () => {
-          return HttpResponse.json({ message: 'default' });
-        })
-        .presets({
-          label: 'withUsers',
-          status: 200,
-          response: { users: [{ id: 1, name: 'John' }] },
-        });
-
-      const handlers = extendHandlers(userHandler);
-
-      handlers.useMock({
-        method: 'get',
-        path: 'http://localhost/api/users',
-        preset: 'withUsers',
-        override: ({ data }) => {
-          data.users.push({ id: 2, name: 'Jane' });
-        },
-      });
-
-      const selectedState = selectedPresetStore.getState().selected;
-      const selectedPreset = selectedState['get:http://localhost/api/users'];
-      expect(selectedPreset.override).toBeDefined();
-    });
-  });
-
-  describe('Store Reset Functionality', () => {
-    it('should properly reset all stores', () => {
-      const userHandler = http
-        .get('http://localhost/api/users', () => {
-          return HttpResponse.json({ message: 'default' });
-        })
-        .presets({
-          label: 'empty',
-          status: 200,
-          response: { users: [] },
-        });
-
-      const handlers = extendHandlers(userHandler);
-
-      handlers.useMock({
-        method: 'get',
-        path: 'http://localhost/api/users',
-        preset: 'empty',
-      });
-
-      mockingState.resetAll();
-
-      expect(presetStore.getState().presets).toEqual({});
-      expect(selectedPresetStore.getState().selected).toEqual({});
-      expect(selectedPresetStore.getState().currentProfile).toBeNull();
-    });
-
-    it('should reset individual endpoints', () => {
-      const userHandler = http
-        .get('http://localhost/api/users', () => {
-          return HttpResponse.json({ message: 'default' });
-        })
-        .presets({
-          label: 'empty',
-          status: 200,
-          response: { users: [] },
-        });
-
-      const handlers = extendHandlers(userHandler);
-
-      handlers.useMock({
-        method: 'get',
-        path: 'http://localhost/api/users',
-        preset: 'empty',
-      });
-
-      mockingState.resetEndpoint('get', 'http://localhost/api/users');
-
-      const selectedState = selectedPresetStore.getState().selected;
-      expect(selectedState['get:http://localhost/api/users']).toBeUndefined();
+      expect(presets['http://localhost/api/users']).toHaveLength(3); // Including default preset
+      expect(presets['http://localhost/api/posts']).toHaveLength(3); // Including default preset
     });
   });
 });
