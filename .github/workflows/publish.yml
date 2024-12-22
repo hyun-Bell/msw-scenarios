@@ -45,7 +45,7 @@ jobs:
 
       # 7. Playwright 필수 시스템 종속성 설치
       - name: Install Playwright dependencies
-        run: sudo pnpm exec playwright install-deps
+        run: npx playwright install-deps
 
       # 8. Playwright 브라우저 설치
       - name: Install Playwright browsers
