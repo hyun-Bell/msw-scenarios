@@ -49,14 +49,35 @@ export interface PresetHandler<
   RequestBody extends DefaultBodyType = DefaultBodyType,
 > extends HttpHandler {
   presets: <Labels extends string, Response extends DefaultBodyType>(
-    ...presets: Array<{ label: Labels; status: number; response: Response }>
+    ...presets: Array<{
+      label: Labels;
+      status: number;
+      response: Response | (() => Promise<Response>);
+    }>
   ) => PresetHandler<T, M, P, Labels, Response, Params, RequestBody>;
+
+  addPreset: <Response extends DefaultBodyType>(preset: {
+    label: string;
+    status: number;
+    response: Response | (() => Promise<Response>);
+  }) => PresetHandler<T, M, P, string, Response, Params, RequestBody>;
+
   _method: M;
   _path: P;
   _responseType: T;
-  _presets: Array<{ label: L; status: number; response: R }>;
-  _labels: L;
-  getCurrentPreset: () => { label: L; status: number; response: R } | undefined;
+  _presets: Array<{
+    label: L | 'default';
+    status: number;
+    response: R | (() => Promise<R>);
+  }>;
+  _labels: L | 'default';
+  getCurrentPreset: () =>
+    | {
+        label: L | 'default';
+        status: number;
+        response: R | (() => Promise<R>);
+      }
+    | undefined;
   reset: () => void;
 }
 
@@ -141,28 +162,20 @@ export interface UseMockOptions<
   H extends readonly PresetHandler[],
   M extends ExtractMethod<H[number]>,
   P extends ExtractPath<H[number]>,
-  L extends ExtractPresetLabels<
-    Extract<H[number], { _method: M; _path: P }>
-  > = ExtractPresetLabels<Extract<H[number], { _method: M; _path: P }>>,
 > {
   method: M;
   path: P;
-  preset: L;
+  preset?:
+    | ExtractPresetLabels<Extract<H[number], { _method: M; _path: P }>>
+    | 'default';
+  response?: any;
+  status?: number;
   override?: (draft: {
     data: ExtractPresetResponse<
       Extract<H[number], { _method: M; _path: P }>,
-      L
+      any
     >;
   }) => void;
-}
-
-export interface MockProfileManager<
-  Profiles extends readonly MockProfile<any, any>[],
-> {
-  profiles: Profiles;
-  useMock: (profileName: Profiles[number]['name']) => void;
-  getAvailableProfiles: () => Array<Profiles[number]['name']>;
-  getCurrentProfile: () => Profiles[number]['name'] | null;
 }
 
 export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
@@ -219,12 +232,16 @@ export interface ProfileManager<
 }
 
 export type SelectedPreset<T = any> = {
-  preset: { label: string; status: number; response: T };
+  preset: {
+    label: string;
+    status: number;
+    response: T | (() => Promise<T>);
+  };
   override?: (draft: { data: T }) => void;
 };
 
 export type Preset = {
   label: string;
   status: number;
-  response: any;
+  response: any | (() => Promise<any>);
 };

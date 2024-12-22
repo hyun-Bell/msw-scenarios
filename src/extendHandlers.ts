@@ -23,16 +23,24 @@ function notifySubscribers(
   >
 ) {
   const status = handlers
-    .map((handler) => ({
-      path: pathToString(handler._path),
-      method: handler._method,
-      currentPreset:
-        mockingState.getEndpointState(
-          handler._method,
-          pathToString(handler._path)
-        )?.preset.label ?? null,
-    }))
-    .filter((status) => status.currentPreset !== null);
+    .map((handler) => {
+      const state = mockingState.getEndpointState(
+        handler._method,
+        pathToString(handler._path)
+      );
+
+      // Don't include handlers set to use real API
+      if (state?.preset.label === '__REAL_API__') {
+        return null;
+      }
+
+      return {
+        path: pathToString(handler._path),
+        method: handler._method,
+        currentPreset: state?.preset.label || 'default',
+      };
+    })
+    .filter((s): s is NonNullable<typeof s> => s !== null);
 
   const state = { status, currentProfile };
 
@@ -63,15 +71,18 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
             handler._method,
             pathToString(handler._path)
           );
-          return state?.preset;
+          return state?.preset.label === '__REAL_API__'
+            ? undefined
+            : state?.preset;
         },
         enumerable: true,
       },
       reset: {
         value: () => {
-          mockingState.resetEndpoint(
+          mockingState.setSelected(
             handler._method,
-            pathToString(handler._path)
+            pathToString(handler._path),
+            { preset: handler._presets[0] }
           );
           workerManager.updateHandlers();
           notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -83,7 +94,9 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
 
   function resetAllHandlers() {
     handlers.forEach((handler) => {
-      mockingState.resetEndpoint(handler._method, pathToString(handler._path));
+      mockingState.setSelected(handler._method, pathToString(handler._path), {
+        preset: handler._presets[0],
+      });
     });
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -103,19 +116,32 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`No handler found for ${options.method} ${options.path}`);
     }
 
-    const preset = handler._presets.find((p) => p.label === options.preset);
-    if (!preset) {
-      throw new Error(`Preset not found: ${options.preset}`);
-    }
+    if (options.response !== undefined) {
+      mockingState.setSelected(options.method, pathToString(options.path), {
+        preset: {
+          label: 'dynamic',
+          status: options.status || 200,
+          response: options.response,
+        },
+        override: options.override,
+      });
+    } else if (options.preset) {
+      const preset = handler._presets.find((p) => p.label === options.preset);
+      if (!preset) {
+        throw new Error(`Preset not found: ${options.preset}`);
+      }
 
-    mockingState.setSelected(options.method, pathToString(options.path), {
-      preset: {
-        label: preset.label,
-        status: preset.status,
-        response: preset.response,
-      },
-      override: options.override,
-    });
+      mockingState.setSelected(options.method, pathToString(options.path), {
+        preset: {
+          label: preset.label,
+          status: preset.status,
+          response: preset.response,
+        },
+        override: options.override,
+      });
+    } else {
+      throw new Error('Either preset or response must be provided');
+    }
 
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
@@ -136,7 +162,14 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
       throw new Error(`No handler found for ${options.method} ${options.path}`);
     }
 
-    mockingState.resetEndpoint(options.method, pathToString(options.path));
+    mockingState.setSelected(options.method, pathToString(options.path), {
+      preset: {
+        label: '__REAL_API__',
+        status: 200,
+        response: {},
+      },
+    });
+
     workerManager.updateHandlers();
     notifySubscribers(handlers, rootCurrentProfile, subscribers);
   };
@@ -211,16 +244,24 @@ export function extendHandlers<H extends readonly PresetHandler[]>(
     useRealAPI: useRealAPIFunction,
     getCurrentStatus: () => {
       return handlers
-        .map((handler) => ({
-          path: pathToString(handler._path),
-          method: handler._method,
-          currentPreset:
-            mockingState.getEndpointState(
-              handler._method,
-              pathToString(handler._path)
-            )?.preset.label ?? null,
-        }))
-        .filter((status) => status.currentPreset !== null);
+        .map((handler) => {
+          const state = mockingState.getEndpointState(
+            handler._method,
+            pathToString(handler._path)
+          );
+
+          // Don't include handlers set to use real API
+          if (state?.preset.label === '__REAL_API__') {
+            return null;
+          }
+
+          return {
+            path: pathToString(handler._path),
+            method: handler._method,
+            currentPreset: state?.preset.label || 'default',
+          };
+        })
+        .filter((s): s is NonNullable<typeof s> => s !== null);
     },
     reset: resetAllHandlers,
     subscribeToChanges: (callback) => {

@@ -1,15 +1,18 @@
 import { produce } from 'immer';
 import { createStore } from './createStore';
-import { Path } from 'msw';
 
 export type Preset = {
   label: string;
   status: number;
-  response: any;
+  response: any | (() => Promise<any>);
 };
 
 export type SelectedPreset<T = any> = {
-  preset: { label: string; status: number; response: T };
+  preset: {
+    label: string;
+    status: number;
+    response: T | (() => Promise<T>);
+  };
   override?: (draft: { data: T }) => void;
 };
 

@@ -9,7 +9,7 @@ export type {
   ExtendedHandlers,
   MockProfile,
   UseMockOptions,
-  MockProfileManager,
+  ProfileManager,
   MockingState,
   SelectedPreset,
   Preset,

@@ -39,37 +39,33 @@ export const workerManager = {
   registerHandlers: (handlers: PresetHandler[]) => {
     registeredHandlers = handlers;
     if (currentInstance) {
-      currentInstance.instance.resetHandlers(); // Reset before registering new handlers
+      currentInstance.instance.resetHandlers();
       currentInstance.instance.use(...registeredHandlers);
     }
   },
   updateHandlers: () => {
     if (!currentInstance) return;
 
-    const activeHandlers = registeredHandlers.filter((handler) => {
-      const state = mockingState.getEndpointState(
+    const handlerStates = registeredHandlers.map((handler) => ({
+      handler,
+      state: mockingState.getEndpointState(
         handler._method,
         typeof handler._path === 'string'
           ? handler._path
           : handler._path.toString()
-      );
-      return state !== undefined;
-    });
+      ),
+    }));
 
-    const remainingHandlers = registeredHandlers.filter((handler) => {
-      const state = mockingState.getEndpointState(
-        handler._method,
-        typeof handler._path === 'string'
-          ? handler._path
-          : handler._path.toString()
-      );
-      return state === undefined;
-    });
-
-    const allHandlers = [...activeHandlers, ...remainingHandlers];
+    // Only include handlers that are not set to use real API
+    const activeHandlers = handlerStates
+      .filter(({ state }) => state?.preset.label !== '__REAL_API__')
+      .map(({ handler }) => handler);
 
     currentInstance.instance.resetHandlers();
-    currentInstance.instance.use(...allHandlers);
+
+    if (activeHandlers.length > 0) {
+      currentInstance.instance.use(...activeHandlers);
+    }
   },
   resetHandlers: () => {
     if (currentInstance) {
