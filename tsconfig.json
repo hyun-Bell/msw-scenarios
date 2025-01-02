@@ -19,7 +19,8 @@
     "jest.config.js",
     ".eslintrc.js",
     "tests",
+    "tests/unit/**/*.test.ts",
     "tests/e2e/specs/**/*.spec.ts"
   ],
-  "exclude": ["node_modules", "dist", "tests"]
+  "exclude": ["node_modules", "dist"]
 }
