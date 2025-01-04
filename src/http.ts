@@ -57,7 +57,9 @@ function createMethodHandler<K extends HttpMethodLiteral>(
           if (response === resolver) {
             return resolver(info);
           }
-          response = await (response as () => Promise<ResponseBodyType>)();
+          response = await (
+            response as (context: typeof info) => Promise<ResponseBodyType>
+          )(info);
         }
 
         if (state.override) {

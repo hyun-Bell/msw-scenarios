@@ -39,6 +39,10 @@ export type HttpMethodHandler<M extends HttpMethodLiteral> = <
   RequestBodyType
 >;
 
+export type PresetResponse<T, P extends PathParams> =
+  | T
+  | ((context: HttpRequestResolverExtras<P>) => Promise<T> | T);
+
 export interface PresetHandler<
   T = any,
   M extends HttpMethodLiteral = HttpMethodLiteral,
@@ -52,7 +56,7 @@ export interface PresetHandler<
     ...presets: Array<{
       label: Labels;
       status: number;
-      response: Response | (() => Promise<Response>);
+      response: PresetResponse<Response, Params>;
     }>
   ) => PresetHandler<T, M, P, Labels, Response, Params, RequestBody>;
 
