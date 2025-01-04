@@ -3,7 +3,7 @@ import {
   selectedPresetActions,
   selectedPresetStore,
 } from './store/stores';
-import type { MockingState, MockingStatus } from './types';
+import type { MockingState, MockingStatus, StatusSubscriber } from './types';
 
 export const mockingState: MockingState = {
   getCurrentStatus: () => {
@@ -19,27 +19,20 @@ export const mockingState: MockingState = {
   },
   getCurrentProfile: <Name extends string = string>() =>
     selectedPresetStore.getState().currentProfile as Name | null,
-  subscribeToChanges: <Name extends string = string>(
-    callback: (state: {
-      mockingStatus: Array<MockingStatus>;
-      currentProfile: Name | null;
-    }) => void
-  ) => {
+  subscribeToChanges: (callback: StatusSubscriber) => {
     return selectedPresetStore.subscribe((state) => {
-      const mockingStatus = Object.entries(state.selected).map(
-        ([key, selected]) => {
-          const [method, path] = key.split(':');
-          return {
-            path,
-            method,
-            currentPreset: selected.preset.label,
-          };
-        }
-      );
+      const status = Object.entries(state.selected).map(([key, selected]) => {
+        const [method, path] = key.split(':');
+        return {
+          path,
+          method,
+          currentPreset: selected.preset.label,
+        };
+      });
 
       callback({
-        mockingStatus,
-        currentProfile: state.currentProfile as Name | null,
+        status,
+        currentProfile: state.currentProfile,
       });
     });
   },

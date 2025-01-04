@@ -7,6 +7,7 @@ import type {
 } from 'msw';
 import type { HttpRequestResolverExtras } from 'msw/lib/core/handlers/HttpHandler';
 
+// HTTP Method Types
 export type HttpMethodLiteral =
   | 'get'
   | 'post'
@@ -17,31 +18,36 @@ export type HttpMethodLiteral =
   | 'head'
   | 'all';
 
-export type HttpMethodHandler<M extends HttpMethodLiteral> = <
-  Params extends PathParams<keyof Params> = PathParams,
-  RequestBodyType extends DefaultBodyType = DefaultBodyType,
-  ResponseBodyType extends DefaultBodyType = undefined,
-  RequestPath extends Path = Path,
->(
-  path: RequestPath,
-  resolver: ResponseResolver<
-    HttpRequestResolverExtras<Params>,
-    RequestBodyType,
-    ResponseBodyType
-  >
-) => PresetHandler<
-  ResponseBodyType,
-  M,
-  RequestPath,
-  string,
-  ResponseBodyType,
-  Params,
-  RequestBodyType
->;
-
+// Base Response Types
 export type PresetResponse<T, P extends PathParams> =
   | T
   | ((context: HttpRequestResolverExtras<P>) => Promise<T> | T);
+
+export type PresetBase = {
+  label: string;
+  status: number;
+  response: any | (() => Promise<any>);
+};
+
+export type Preset = PresetBase;
+export type SelectedPreset<T = any> = {
+  preset: PresetBase & { response: T | (() => Promise<T>) };
+  override?: (draft: { data: T }) => void;
+};
+
+export type HttpMethodHandler<M extends HttpMethodLiteral> = <
+  Params extends PathParams = PathParams,
+  ReqBody extends DefaultBodyType = DefaultBodyType,
+  ResBody extends DefaultBodyType = undefined,
+  ReqPath extends Path = Path,
+>(
+  path: ReqPath,
+  resolver: ResponseResolver<
+    HttpRequestResolverExtras<Params>,
+    ReqBody,
+    ResBody
+  >
+) => PresetHandler<ResBody, M, ReqPath, string, ResBody, Params, ReqBody>;
 
 export interface PresetHandler<
   T = any,
@@ -49,8 +55,8 @@ export interface PresetHandler<
   P extends Path = Path,
   L extends string = string,
   R = any,
-  Params extends PathParams<keyof Params> = PathParams,
-  RequestBody extends DefaultBodyType = DefaultBodyType,
+  Params extends PathParams = PathParams,
+  ReqBody extends DefaultBodyType = DefaultBodyType,
 > extends HttpHandler {
   presets: <Labels extends string, Response extends DefaultBodyType>(
     ...presets: Array<{
@@ -58,33 +64,29 @@ export interface PresetHandler<
       status: number;
       response: PresetResponse<Response, Params>;
     }>
-  ) => PresetHandler<T, M, P, Labels, Response, Params, RequestBody>;
+  ) => PresetHandler<T, M, P, Labels, Response, Params, ReqBody>;
 
-  addPreset: <Response extends DefaultBodyType>(preset: {
-    label: string;
-    status: number;
-    response: Response | (() => Promise<Response>);
-  }) => PresetHandler<T, M, P, string, Response, Params, RequestBody>;
+  addPreset: <Response extends DefaultBodyType>(
+    preset: PresetBase & { response: Response | (() => Promise<Response>) }
+  ) => PresetHandler<T, M, P, string, Response, Params, ReqBody>;
 
   _method: M;
   _path: P;
   _responseType: T;
-  _presets: Array<{
-    label: L | 'default';
-    status: number;
-    response: R | (() => Promise<R>);
-  }>;
+  _presets: Array<
+    PresetBase & { label: L | 'default'; response: R | (() => Promise<R>) }
+  >;
   _labels: L | 'default';
   getCurrentPreset: () =>
-    | {
+    | (PresetBase & {
         label: L | 'default';
-        status: number;
         response: R | (() => Promise<R>);
-      }
+      })
     | undefined;
   reset: () => void;
 }
 
+// HTTP Interface
 export interface Http {
   get: HttpMethodHandler<'get'>;
   post: HttpMethodHandler<'post'>;
@@ -96,31 +98,23 @@ export interface Http {
   all: HttpMethodHandler<'all'>;
 }
 
-export interface HandlerInfo<H extends PresetHandler> {
-  method: H['_method'];
-  path: H['_path'];
-  presets: Array<{
-    label: H['_labels'];
-    status: number;
-    response: H['_responseType'];
-  }>;
-}
-
-export interface MockingStatus {
+export type MockingStatus = {
   path: string;
   method: string;
   currentPreset: string | null;
-}
+};
+
+export type MockingStateUpdate = {
+  status: MockingStatus[];
+  currentProfile: string | null;
+};
+
+export type StatusSubscriber = (state: MockingStateUpdate) => void;
 
 export interface MockingState {
-  getCurrentStatus: () => Array<MockingStatus>;
+  getCurrentStatus: () => MockingStatus[];
   getCurrentProfile: <Name extends string = string>() => Name | null;
-  subscribeToChanges: <Name extends string = string>(
-    callback: (state: {
-      mockingStatus: Array<MockingStatus>;
-      currentProfile: Name | null;
-    }) => void
-  ) => () => void;
+  subscribeToChanges: (callback: StatusSubscriber) => () => void;
   resetAll: () => void;
   resetEndpoint: (method: string, path: string) => void;
   getEndpointState: (
@@ -133,40 +127,49 @@ export interface MockingState {
   ) => void;
 }
 
+export type HandlerInfo<H extends PresetHandler> = {
+  method: H['_method'];
+  path: H['_path'];
+  presets: Array<{
+    label: H['_labels'];
+    status: number;
+    response: H['_responseType'];
+  }>;
+};
+
+// Utility Types for Type Extraction
 export type ExtractMethod<H> =
-  H extends PresetHandler<any, infer M, any, any> ? M : never;
-
+  H extends PresetHandler<any, infer M, any> ? M : never;
 export type ExtractPath<H> =
-  H extends PresetHandler<any, any, infer P, any> ? P : never;
-
+  H extends PresetHandler<any, any, infer P> ? P : never;
 export type ExtractResponseType<H> =
-  H extends PresetHandler<infer T, any, any, any> ? T : never;
-
+  H extends PresetHandler<infer T> ? T : never;
 export type ExtractPresetLabels<H> =
   H extends PresetHandler<any, any, any, infer L> ? L : never;
-
-export type ExtractPresetResponse<H, L> =
+export type ExtractPresetResponse<H> =
   H extends PresetHandler<any, any, any, any, infer R> ? R : never;
 
-export interface MockProfileHandlers<H extends readonly PresetHandler[]> {
+// Mock Profile Types
+export type MockProfileHandlers<H extends readonly PresetHandler[]> = {
   handlers: H;
   useMock: ExtendedHandlers<H>['useMock'];
   useRealAPI: ExtendedHandlers<H>['useRealAPI'];
-}
+};
 
-export interface MockProfile<
+export type MockProfile<
   H extends readonly PresetHandler[],
   Name extends string = string,
-> {
+> = {
   name: Name;
   actions: (handlers: MockProfileHandlers<H>) => void;
-}
+};
 
-export interface UseMockOptions<
+// Extended Handler Types
+export type UseMockOptions<
   H extends readonly PresetHandler[],
   M extends ExtractMethod<H[number]>,
   P extends ExtractPath<H[number]>,
-> {
+> = {
   method: M;
   path: P;
   preset?:
@@ -175,12 +178,9 @@ export interface UseMockOptions<
   response?: any;
   status?: number;
   override?: (draft: {
-    data: ExtractPresetResponse<
-      Extract<H[number], { _method: M; _path: P }>,
-      any
-    >;
+    data: ExtractPresetResponse<Extract<H[number], { _method: M; _path: P }>>;
   }) => void;
-}
+};
 
 export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
   handlers: H;
@@ -197,22 +197,9 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
     method: M;
     path: P;
   }) => void;
-  getCurrentStatus: () => Array<{
-    path: string;
-    method: string;
-    currentPreset: string | null;
-  }>;
+  getCurrentStatus: () => MockingStatus[];
   reset: () => void;
-  subscribeToChanges: (
-    subscriber: (state: {
-      status: Array<{
-        path: string;
-        method: string;
-        currentPreset: string | null;
-      }>;
-      currentProfile: string | null;
-    }) => void
-  ) => () => void;
+  subscribeToChanges: (subscriber: StatusSubscriber) => () => void;
   createMockProfiles: <
     Name extends string,
     Profile extends MockProfile<H, Name>,
@@ -234,18 +221,3 @@ export interface ProfileManager<
     callback: (currentProfile: Profiles[number]['name'] | null) => void
   ) => () => void;
 }
-
-export type SelectedPreset<T = any> = {
-  preset: {
-    label: string;
-    status: number;
-    response: T | (() => Promise<T>);
-  };
-  override?: (draft: { data: T }) => void;
-};
-
-export type Preset = {
-  label: string;
-  status: number;
-  response: any | (() => Promise<any>);
-};

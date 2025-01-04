@@ -24,7 +24,7 @@ function createMethodHandler<K extends HttpMethodLiteral>(
   originalMethod: Function
 ): HttpMethodHandler<K> {
   return <
-    Params extends PathParams<keyof Params> = PathParams,
+    Params extends PathParams = PathParams,
     RequestBodyType extends DefaultBodyType = DefaultBodyType,
     ResponseBodyType extends DefaultBodyType = undefined,
     RequestPath extends Path = Path,
@@ -45,10 +45,10 @@ function createMethodHandler<K extends HttpMethodLiteral>(
     RequestBodyType
   > => {
     const wrappedResolver: typeof resolver = async (info) => {
-      const state = mockingState.getEndpointState(
-        method,
-        typeof path === 'string' ? path : path.toString()
-      ) as SelectedPreset<ResponseBodyType> | undefined;
+      const pathStr = typeof path === 'string' ? path : path.toString();
+      const state = mockingState.getEndpointState(method, pathStr) as
+        | SelectedPreset<ResponseBodyType>
+        | undefined;
 
       if (state) {
         let response = state.preset.response;
@@ -57,9 +57,7 @@ function createMethodHandler<K extends HttpMethodLiteral>(
           if (response === resolver) {
             return resolver(info);
           }
-          response = await (
-            response as (context: typeof info) => Promise<ResponseBodyType>
-          )(info);
+          response = await (response as Function)(info);
         }
 
         if (state.override) {
@@ -77,19 +75,18 @@ function createMethodHandler<K extends HttpMethodLiteral>(
     };
 
     const base = originalMethod(path, wrappedResolver) as HttpHandler;
+    const defaultPreset = {
+      label: 'default',
+      status: 200,
+      response: resolver,
+    };
 
     const handler = Object.create(base, {
       _method: { value: method, enumerable: true },
       _path: { value: path, enumerable: true },
       _responseType: { value: {} as ResponseBodyType, enumerable: true },
       _presets: {
-        value: [
-          {
-            label: 'default',
-            status: 200,
-            response: resolver,
-          },
-        ],
+        value: [defaultPreset],
         writable: true,
         enumerable: true,
       },
@@ -105,12 +102,10 @@ function createMethodHandler<K extends HttpMethodLiteral>(
             response: Response | (() => Promise<Response>);
           }>
         ) {
-          this._presets = [this._presets[0], ...presets];
+          const pathStr = typeof path === 'string' ? path : path.toString();
+          this._presets = [defaultPreset, ...presets];
           this._labels = presets[0].label;
-          presetActions.setPresets(
-            typeof path === 'string' ? path : path.toString(),
-            this._presets
-          );
+          presetActions.setPresets(pathStr, this._presets);
           return this;
         },
         enumerable: true,
@@ -121,11 +116,9 @@ function createMethodHandler<K extends HttpMethodLiteral>(
           status: number;
           response: Response | (() => Promise<Response>);
         }) {
+          const pathStr = typeof path === 'string' ? path : path.toString();
           this._presets = [...this._presets, preset];
-          presetActions.setPresets(
-            typeof path === 'string' ? path : path.toString(),
-            this._presets
-          );
+          presetActions.setPresets(pathStr, this._presets);
           return this;
         },
         enumerable: true,
@@ -140,11 +133,8 @@ function createMethodHandler<K extends HttpMethodLiteral>(
       RequestBodyType
     >;
 
-    // Register initial default preset
-    presetActions.setPresets(
-      typeof path === 'string' ? path : path.toString(),
-      handler._presets
-    );
+    const pathStr = typeof path === 'string' ? path : path.toString();
+    presetActions.setPresets(pathStr, handler._presets);
 
     return handler;
   };
