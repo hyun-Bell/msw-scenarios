@@ -17,6 +17,7 @@
     "test:e2e": "pnpm --filter @msw-scenarios/core test:e2e",
     "test:e2e:ui": "pnpm --filter @msw-scenarios/core test:e2e:ui",
     "test:e2e:dev": "pnpm --filter @msw-scenarios/core test:e2e:dev",
+    "test:e2e:install": "pnpm --filter @msw-scenarios/core test:e2e:install",
     "example:dev": "pnpm --filter @msw-scenarios/example-nextjs-app-router dev",
     "example:build": "pnpm --filter @msw-scenarios/example-nextjs-app-router build",
     "example:start": "pnpm --filter @msw-scenarios/example-nextjs-app-router start",
