@@ -1,18 +1,29 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node", "jest"],
     "module": "ESNext",
     "strict": true,
     "jsx": "react",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "verbatimModuleSyntax": false
   },
   "include": [
     "src",
