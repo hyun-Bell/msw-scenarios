@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST="{\"pages/_app.tsx -> ../mocks/browser\":{\"id\":\"pages/_app.tsx -> ../mocks/browser\",\"files\":[\"static/chunks/mocks_browser_ts.js\"]}}"
