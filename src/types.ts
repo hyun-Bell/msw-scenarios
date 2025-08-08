@@ -63,30 +63,32 @@ export type HttpMethodHandler<M extends HttpMethodLiteral> = <
     ReqBody,
     ResBody
   >
-) => PresetHandler<ResBody, M, ReqPath>;
+) => PresetHandler<ResBody, M, ReqPath, 'default'>;
 
 // Simplified PresetHandler with better type inference and variance
 export interface PresetHandler<
   out Response = unknown,
   out Method extends HttpMethodLiteral = HttpMethodLiteral,
   out RequestPath extends Path = Path,
+  out Labels extends string = string,
 > extends HttpHandler {
   readonly _method: Method;
   readonly _path: RequestPath;
   readonly _responseType: Response;
-  readonly _presets: ReadonlyArray<PresetBase<Response>>;
+  readonly _presets: ReadonlyArray<PresetBase<Response> & { label: Labels | 'default' }>;
+  readonly _labels: Labels | 'default';
   
-  presets<const Labels extends string, const NewResponse = Response>(
+  presets<const NewLabels extends string, const NewResponse = Response>(
     ...presets: ReadonlyArray<{
-      label: Labels;
+      label: NewLabels;
       status: number;
       response: PresetResponse<NewResponse>;
     }>
-  ): PresetHandler<NewResponse, Method, RequestPath>;
+  ): PresetHandler<NewResponse, Method, RequestPath, NewLabels | 'default'>;
 
-  addPreset<const NewResponse = Response>(
-    preset: PresetBase<NewResponse>
-  ): PresetHandler<NewResponse, Method, RequestPath>;
+  addPreset<const NewLabels extends string, const NewResponse = Response>(
+    preset: PresetBase<NewResponse> & { label: NewLabels }
+  ): PresetHandler<NewResponse, Method, RequestPath, Labels | NewLabels>;
 
   getCurrentPreset(): PresetBase<Response> | undefined;
   reset(): void;
@@ -176,7 +178,14 @@ type ExtractResponseByMethodAndPath<
   H extends readonly PresetHandler[],
   M extends HttpMethodLiteral,
   P extends Path
-> = ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<infer R> ? R : never;
+> = ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<infer R, any, any, any> ? R : never;
+
+// Extract preset labels for a specific handler
+type ExtractPresetLabels<
+  H extends readonly PresetHandler[],
+  M extends HttpMethodLiteral,
+  P extends Path
+> = ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<any, any, any, infer L> ? L : never;
 
 // Extended Handler Types with improved type inference and narrowing
 export interface UseMockOptions<
@@ -186,7 +195,7 @@ export interface UseMockOptions<
 > {
   method: M;
   path: P;
-  preset?: string;
+  preset?: ExtractPresetLabels<H, M, P>;
   response?: ExtractResponseByMethodAndPath<H, M, P>;
   status?: number;
   override?: (draft: { data: Draft<ExtractResponseByMethodAndPath<H, M, P>> }) => void;
@@ -233,6 +242,7 @@ export interface ProfileManager<
 }
 
 // Type helper for better inference
-export type InferHandlerResponse<H> = H extends PresetHandler<infer R> ? R : never;
-export type InferHandlerMethod<H> = H extends PresetHandler<any, infer M> ? M : never;
-export type InferHandlerPath<H> = H extends PresetHandler<any, any, infer P> ? P : never;
+export type InferHandlerResponse<H> = H extends PresetHandler<infer R, any, any, any> ? R : never;
+export type InferHandlerMethod<H> = H extends PresetHandler<any, infer M, any, any> ? M : never;
+export type InferHandlerPath<H> = H extends PresetHandler<any, any, infer P, any> ? P : never;
+export type InferHandlerLabels<H> = H extends PresetHandler<any, any, any, infer L> ? L : never;

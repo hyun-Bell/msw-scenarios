@@ -46,7 +46,7 @@ function createMethodHandler<K extends HttpMethodLiteral>(
       RequestBodyType,
       ResponseBodyType
     >
-  ): PresetHandler<ResponseBodyType, K, RequestPath> {
+  ): PresetHandler<ResponseBodyType, K, RequestPath, 'default'> {
     // Wrap resolver to intercept and check for presets
     const wrappedResolver: typeof resolver = async (info) => {
       const pathStr = typeof path === 'string' ? path : path.toString();
@@ -94,7 +94,7 @@ function createMethodHandler<K extends HttpMethodLiteral>(
     };
     
     // Create preset handler with prototype delegation
-    const handler = Object.create(baseHandler) as PresetHandler<ResponseBodyType, K, RequestPath>;
+    const handler = Object.create(baseHandler) as PresetHandler<ResponseBodyType, K, RequestPath, 'default'>;
     
     // Add preset-specific properties
     Object.defineProperties(handler, {
@@ -106,33 +106,83 @@ function createMethodHandler<K extends HttpMethodLiteral>(
         writable: true,
         enumerable: true 
       },
+      _labels: {
+        value: 'default' as const,
+        writable: true,
+        enumerable: true
+      },
       
       presets: {
-        value: function<const Labels extends string, const NewResponse = ResponseBodyType>(
+        value: function<const NewLabels extends string, const NewResponse = ResponseBodyType>(
           ...presets: ReadonlyArray<{
-            label: Labels;
+            label: NewLabels;
             status: number;
             response: PresetResponse<NewResponse>;
           }>
         ) {
           const pathStr = typeof path === 'string' ? path : path.toString();
           const newPresets = [defaultPreset, ...presets];
-          this._presets = newPresets;
+          const newHandler = Object.create(baseHandler) as PresetHandler<NewResponse, K, RequestPath, NewLabels | 'default'>;
+          
+          // Copy properties with updated types
+          Object.defineProperties(newHandler, {
+            _method: { value: method, enumerable: true },
+            _path: { value: path, enumerable: true },
+            _responseType: { value: {} as NewResponse, enumerable: true },
+            _presets: { 
+              value: newPresets,
+              writable: true,
+              enumerable: true 
+            },
+            _labels: {
+              value: undefined as any,
+              writable: true,
+              enumerable: true
+            },
+            presets: { value: this.presets, enumerable: true },
+            addPreset: { value: this.addPreset, enumerable: true },
+            getCurrentPreset: { value: this.getCurrentPreset, enumerable: true },
+            reset: { value: this.reset, enumerable: true }
+          });
+          
           presetActions.setPresets(pathStr, newPresets as any);
-          return this;
+          return newHandler;
         },
         enumerable: true
       },
       
       addPreset: {
-        value: function<const NewResponse = ResponseBodyType>(
-          preset: PresetBase<NewResponse>
+        value: function<const NewLabels extends string, const NewResponse = ResponseBodyType>(
+          preset: PresetBase<NewResponse> & { label: NewLabels }
         ) {
           const pathStr = typeof path === 'string' ? path : path.toString();
           const newPresets = [...this._presets, preset];
-          this._presets = newPresets;
+          const currentLabels = this._labels || 'default';
+          const newHandler = Object.create(baseHandler) as PresetHandler<NewResponse, K, RequestPath, typeof currentLabels | NewLabels>;
+          
+          // Copy properties with updated types
+          Object.defineProperties(newHandler, {
+            _method: { value: method, enumerable: true },
+            _path: { value: path, enumerable: true },
+            _responseType: { value: {} as NewResponse, enumerable: true },
+            _presets: { 
+              value: newPresets,
+              writable: true,
+              enumerable: true 
+            },
+            _labels: {
+              value: undefined as any,
+              writable: true,
+              enumerable: true
+            },
+            presets: { value: this.presets, enumerable: true },
+            addPreset: { value: this.addPreset, enumerable: true },
+            getCurrentPreset: { value: this.getCurrentPreset, enumerable: true },
+            reset: { value: this.reset, enumerable: true }
+          });
+          
           presetActions.setPresets(pathStr, newPresets as any);
-          return this;
+          return newHandler;
         },
         enumerable: true
       },
