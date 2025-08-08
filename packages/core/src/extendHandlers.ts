@@ -8,9 +8,6 @@ import type {
   UseMockOptions,
   MockingStatus,
   StatusSubscriber,
-  MockingStateUpdate,
-  InferHandlerMethod,
-  InferHandlerPath,
   SelectedPreset,
 } from './types';
 import { mockingState } from './mockingState';
@@ -92,7 +89,7 @@ export function extendHandlers<const H extends readonly PresetHandler[]>(
         configurable: true,
       });
     }
-    
+
     if (!handler.reset) {
       Object.defineProperty(handler, 'reset', {
         value: () => {
@@ -237,7 +234,8 @@ export function extendHandlers<const H extends readonly PresetHandler[]>(
         notifyProfileSubscribers(currentProfile);
         notifySubscribers(handlers, currentProfile, subscribers);
       },
-      getAvailableProfiles: () => profiles.map((p) => p.name) as ReadonlyArray<Profiles[number]['name']>,
+      getAvailableProfiles: () =>
+        profiles.map((p) => p.name) as ReadonlyArray<Profiles[number]['name']>,
       getCurrentProfile: () => currentProfile,
       reset: () => {
         resetAllHandlers();
@@ -262,7 +260,7 @@ export function extendHandlers<const H extends readonly PresetHandler[]>(
     useRealAPI: useRealAPIFunction,
     getCurrentStatus: (): ReadonlyArray<MockingStatus> => {
       const statuses: MockingStatus[] = [];
-      
+
       for (const handler of handlers) {
         const state = mockingState.getEndpointState(
           handler._method,
@@ -278,7 +276,7 @@ export function extendHandlers<const H extends readonly PresetHandler[]>(
           });
         }
       }
-      
+
       return statuses;
     },
     reset: resetAllHandlers,

@@ -1,20 +1,25 @@
-'use client';import React, { useState } from 'react';
+'use client';
+import React, { useState } from 'react';
 import { usePresetManager } from '../hooks/usePresetManager';
 import type { PresetInfo } from '../types';
 
 export function PresetSelector() {
-  const { presets, activePresets, togglePreset, clearAllPresets } = usePresetManager();
+  const { presets, activePresets, togglePreset, clearAllPresets } =
+    usePresetManager();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMethod, setFilterMethod] = useState<string>('all');
 
-  const filteredPresets = presets.filter(preset => {
-    const matchesSearch = preset.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         preset.label.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMethod = filterMethod === 'all' || preset.method.toLowerCase() === filterMethod.toLowerCase();
+  const filteredPresets = presets.filter((preset) => {
+    const matchesSearch =
+      preset.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      preset.label.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesMethod =
+      filterMethod === 'all' ||
+      preset.method.toLowerCase() === filterMethod.toLowerCase();
     return matchesSearch && matchesMethod;
   });
 
-  const methods = [...new Set(presets.map(p => p.method))];
+  const methods = [...new Set(presets.map((p) => p.method))];
 
   return (
     <div className="p-4 h-full flex flex-col">
@@ -35,8 +40,10 @@ export function PresetSelector() {
           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
         >
           <option value="all">All Methods</option>
-          {methods.map(method => (
-            <option key={method} value={method}>{method.toUpperCase()}</option>
+          {methods.map((method) => (
+            <option key={method} value={method}>
+              {method.toUpperCase()}
+            </option>
           ))}
         </select>
       </div>
@@ -58,14 +65,16 @@ export function PresetSelector() {
       <div className="flex-1 overflow-auto space-y-2">
         {filteredPresets.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-            {presets.length === 0 ? 'No presets available' : 'No presets match your search'}
+            {presets.length === 0
+              ? 'No presets available'
+              : 'No presets match your search'}
           </div>
         ) : (
           filteredPresets.map((preset) => (
             <PresetCard
               key={preset.id}
               preset={preset}
-              isActive={activePresets.some(p => p.id === preset.id)}
+              isActive={activePresets.some((p) => p.id === preset.id)}
               onToggle={() => togglePreset(preset)}
             />
           ))
@@ -86,7 +95,8 @@ function PresetCard({ preset, isActive, onToggle }: PresetCardProps) {
     GET: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     POST: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     PUT: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-    PATCH: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    PATCH:
+      'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
     DELETE: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
   };
 
@@ -112,14 +122,20 @@ function PresetCard({ preset, isActive, onToggle }: PresetCardProps) {
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`px-2 py-1 text-xs font-semibold rounded ${
-              methodColors[preset.method] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-            }`}>
+            <span
+              className={`px-2 py-1 text-xs font-semibold rounded ${
+                methodColors[preset.method] ||
+                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+              }`}
+            >
               {preset.method}
             </span>
-            <span className={`text-sm font-mono ${
-              statusColors[preset.status] || 'text-gray-600 dark:text-gray-400'
-            }`}>
+            <span
+              className={`text-sm font-mono ${
+                statusColors[preset.status] ||
+                'text-gray-600 dark:text-gray-400'
+              }`}
+            >
               {preset.status}
             </span>
           </div>
@@ -130,12 +146,16 @@ function PresetCard({ preset, isActive, onToggle }: PresetCardProps) {
             {preset.path}
           </div>
         </div>
-        <div className={`ml-3 w-5 h-5 rounded-full flex items-center justify-center ${
-          isActive ? 'bg-blue-600' : 'border-2 border-gray-300 dark:border-gray-600'
-        }`}>
+        <div
+          className={`ml-3 w-5 h-5 rounded-full flex items-center justify-center ${
+            isActive
+              ? 'bg-blue-600'
+              : 'border-2 border-gray-300 dark:border-gray-600'
+          }`}
+        >
           {isActive && (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
             </svg>
           )}
         </div>

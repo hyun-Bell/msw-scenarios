@@ -19,19 +19,19 @@ export interface DevtoolsProps {
    * @default 'bottom-right'
    */
   position?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
-  
+
   /**
    * Default open state
    * @default false
    */
   defaultOpen?: boolean;
-  
+
   /**
    * Enable keyboard shortcuts
    * @default true
    */
   enableKeyboardShortcuts?: boolean;
-  
+
   /**
    * Custom theme
    */

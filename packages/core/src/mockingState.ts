@@ -3,7 +3,7 @@ import {
   selectedPresetActions,
   selectedPresetStore,
 } from './store/stores';
-import type { MockingState, MockingStatus, StatusSubscriber } from './types';
+import type { MockingState, StatusSubscriber } from './types';
 
 export const mockingState: MockingState = {
   getCurrentStatus: () => {

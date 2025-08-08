@@ -1,4 +1,5 @@
-'use client';import { useState, useEffect } from 'react';
+'use client';
+import { useState, useEffect } from 'react';
 import type { ProfileInfo, PresetInfo } from '../types';
 
 interface UseProfileManagerReturn {
@@ -22,16 +23,16 @@ export function useProfileManager(): UseProfileManagerReturn {
         method: 'GET',
         path: '/api/users',
         status: 200,
-        active: true
+        active: true,
       },
       {
         id: 'posts-success',
-        label: 'Posts Success', 
+        label: 'Posts Success',
         method: 'GET',
         path: '/api/posts',
         status: 200,
-        active: true
-      }
+        active: true,
+      },
     ];
 
     const mockProfiles: ProfileInfo[] = [
@@ -40,8 +41,8 @@ export function useProfileManager(): UseProfileManagerReturn {
         active: false,
         presets: [
           { ...mockPresets[0], active: true },
-          { ...mockPresets[1], active: true }
-        ]
+          { ...mockPresets[1], active: true },
+        ],
       },
       {
         name: 'Empty State',
@@ -53,17 +54,17 @@ export function useProfileManager(): UseProfileManagerReturn {
             method: 'GET',
             path: '/api/users',
             status: 200,
-            active: true
+            active: true,
           },
           {
             id: 'posts-empty',
             label: 'Posts List Empty',
-            method: 'GET', 
+            method: 'GET',
             path: '/api/posts',
             status: 200,
-            active: true
-          }
-        ]
+            active: true,
+          },
+        ],
       },
       {
         name: 'Error Scenarios',
@@ -73,33 +74,33 @@ export function useProfileManager(): UseProfileManagerReturn {
             id: 'user-error',
             label: 'User Server Error',
             method: 'GET',
-            path: '/api/users', 
+            path: '/api/users',
             status: 500,
-            active: true
+            active: true,
           },
           {
             id: 'posts-error',
             label: 'Posts Server Error',
             method: 'GET',
             path: '/api/posts',
-            status: 500, 
-            active: true
-          }
-        ]
-      }
+            status: 500,
+            active: true,
+          },
+        ],
+      },
     ];
 
     setProfiles(mockProfiles);
-    setActiveProfile(mockProfiles.find(p => p.active) || null);
+    setActiveProfile(mockProfiles.find((p) => p.active) || null);
   }, []);
 
   const switchProfile = (profileName: string) => {
-    const profile = profiles.find(p => p.name === profileName);
+    const profile = profiles.find((p) => p.name === profileName);
     if (!profile) return;
 
     // Update active profile
-    setProfiles(prev => 
-      prev.map(p => ({ ...p, active: p.name === profileName }))
+    setProfiles((prev) =>
+      prev.map((p) => ({ ...p, active: p.name === profileName }))
     );
     setActiveProfile({ ...profile, active: true });
 
@@ -112,10 +113,10 @@ export function useProfileManager(): UseProfileManagerReturn {
     const newProfile: ProfileInfo = {
       name,
       active: false,
-      presets: []
+      presets: [],
     };
 
-    setProfiles(prev => [...prev, newProfile]);
+    setProfiles((prev) => [...prev, newProfile]);
 
     // In real app, this would call @msw-scenarios/core:
     // const profiles = extendedHandlers.createMockProfiles(
@@ -130,7 +131,7 @@ export function useProfileManager(): UseProfileManagerReturn {
       setActiveProfile(null);
     }
 
-    setProfiles(prev => prev.filter(p => p.name !== name));
+    setProfiles((prev) => prev.filter((p) => p.name !== name));
 
     // In real app, this would call @msw-scenarios/core to cleanup
     console.log(`Deleted profile: ${name}`);
@@ -141,6 +142,6 @@ export function useProfileManager(): UseProfileManagerReturn {
     activeProfile,
     switchProfile,
     createProfile,
-    deleteProfile
+    deleteProfile,
   };
 }

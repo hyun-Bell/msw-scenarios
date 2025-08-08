@@ -1,4 +1,5 @@
-'use client';import { useState, useEffect } from 'react';
+'use client';
+import { useState, useEffect } from 'react';
 import type { PresetInfo } from '../types';
 
 interface UsePresetManagerReturn {
@@ -22,7 +23,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'GET',
         path: '/api/users',
         status: 200,
-        active: true
+        active: true,
       },
       {
         id: 'user-list-empty',
@@ -30,7 +31,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'GET',
         path: '/api/users',
         status: 200,
-        active: false
+        active: false,
       },
       {
         id: 'user-list-error',
@@ -38,7 +39,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'GET',
         path: '/api/users',
         status: 500,
-        active: false
+        active: false,
       },
       {
         id: 'user-create-success',
@@ -46,7 +47,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'POST',
         path: '/api/users',
         status: 201,
-        active: false
+        active: false,
       },
       {
         id: 'user-create-validation',
@@ -54,7 +55,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'POST',
         path: '/api/users',
         status: 400,
-        active: false
+        active: false,
       },
       {
         id: 'user-detail-success',
@@ -62,7 +63,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'GET',
         path: '/api/users/:id',
         status: 200,
-        active: false
+        active: false,
       },
       {
         id: 'user-detail-not-found',
@@ -70,7 +71,7 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'GET',
         path: '/api/users/:id',
         status: 404,
-        active: false
+        active: false,
       },
       {
         id: 'posts-success',
@@ -78,32 +79,30 @@ export function usePresetManager(): UsePresetManagerReturn {
         method: 'GET',
         path: '/api/posts',
         status: 200,
-        active: false
-      }
+        active: false,
+      },
     ];
 
     setPresets(mockPresets);
-    setActivePresets(mockPresets.filter(p => p.active));
+    setActivePresets(mockPresets.filter((p) => p.active));
   }, []);
 
   const togglePreset = (preset: PresetInfo) => {
-    setPresets(prev => 
-      prev.map(p => 
-        p.id === preset.id ? { ...p, active: !p.active } : p
-      )
+    setPresets((prev) =>
+      prev.map((p) => (p.id === preset.id ? { ...p, active: !p.active } : p))
     );
-    
-    setActivePresets(prev => {
-      const isCurrentlyActive = prev.some(p => p.id === preset.id);
+
+    setActivePresets((prev) => {
+      const isCurrentlyActive = prev.some((p) => p.id === preset.id);
       if (isCurrentlyActive) {
-        return prev.filter(p => p.id !== preset.id);
+        return prev.filter((p) => p.id !== preset.id);
       } else {
         return [...prev, { ...preset, active: true }];
       }
     });
 
     // In real app, this would call @msw-scenarios/core methods:
-    // extendedHandlers.useMock({ 
+    // extendedHandlers.useMock({
     //   method: preset.method.toLowerCase() as any,
     //   path: preset.path,
     //   preset: preset.label
@@ -111,7 +110,7 @@ export function usePresetManager(): UsePresetManagerReturn {
   };
 
   const clearAllPresets = () => {
-    setPresets(prev => prev.map(p => ({ ...p, active: false })));
+    setPresets((prev) => prev.map((p) => ({ ...p, active: false })));
     setActivePresets([]);
 
     // In real app, this would call @msw-scenarios/core:
@@ -128,6 +127,6 @@ export function usePresetManager(): UsePresetManagerReturn {
     activePresets,
     togglePreset,
     clearAllPresets,
-    refreshPresets
+    refreshPresets,
   };
 }

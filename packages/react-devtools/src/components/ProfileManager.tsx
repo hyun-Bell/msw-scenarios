@@ -1,9 +1,16 @@
-'use client';import React, { useState } from 'react';
+'use client';
+import React, { useState } from 'react';
 import { useProfileManager } from '../hooks/useProfileManager';
 import type { ProfileInfo } from '../types';
 
 export function ProfileManager() {
-  const { profiles, activeProfile, switchProfile, createProfile, deleteProfile } = useProfileManager();
+  const {
+    profiles,
+    activeProfile,
+    switchProfile,
+    createProfile,
+    deleteProfile,
+  } = useProfileManager();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   return (
@@ -42,11 +49,19 @@ export function ProfileManager() {
       <div className="flex-1 overflow-auto">
         {profiles.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" className="mx-auto mb-4 opacity-50">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="mx-auto mb-4 opacity-50"
+            >
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             <p className="text-lg font-medium mb-2">No profiles created</p>
-            <p className="text-sm">Create your first profile to group related API presets</p>
+            <p className="text-sm">
+              Create your first profile to group related API presets
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -84,7 +99,12 @@ interface ProfileCardProps {
   onDelete: () => void;
 }
 
-function ProfileCard({ profile, isActive, onActivate, onDelete }: ProfileCardProps) {
+function ProfileCard({
+  profile,
+  isActive,
+  onActivate,
+  onDelete,
+}: ProfileCardProps) {
   return (
     <div
       className={`p-4 border rounded-lg transition-all cursor-pointer ${
@@ -97,9 +117,13 @@ function ProfileCard({ profile, isActive, onActivate, onDelete }: ProfileCardPro
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <h4 className={`font-medium ${
-              isActive ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-white'
-            }`}>
+            <h4
+              className={`font-medium ${
+                isActive
+                  ? 'text-blue-900 dark:text-blue-100'
+                  : 'text-gray-900 dark:text-white'
+              }`}
+            >
               {profile.name}
             </h4>
             {isActive && (
@@ -111,9 +135,7 @@ function ProfileCard({ profile, isActive, onActivate, onDelete }: ProfileCardPro
           <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
             <span>{profile.presets.length} presets</span>
             <span>•</span>
-            <span>
-              {profile.presets.filter(p => p.active).length} active
-            </span>
+            <span>{profile.presets.filter((p) => p.active).length} active</span>
           </div>
         </div>
         <button
@@ -125,7 +147,7 @@ function ProfileCard({ profile, isActive, onActivate, onDelete }: ProfileCardPro
           title="Delete profile"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
           </svg>
         </button>
       </div>
@@ -156,7 +178,10 @@ function CreateProfileDialog({ onClose, onCreate }: CreateProfileDialogProps) {
         </h3>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="profile-name"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Profile Name
             </label>
             <input

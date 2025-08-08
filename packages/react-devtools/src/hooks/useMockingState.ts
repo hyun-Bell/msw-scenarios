@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import type { MockingState, PresetInfo, ProfileInfo, ApiCall } from '../types';
 
@@ -7,7 +6,7 @@ export function useMockingState(): MockingState {
     enabled: true,
     activePresets: [],
     activeProfile: undefined,
-    recentApiCalls: []
+    recentApiCalls: [],
   });
 
   useEffect(() => {
@@ -19,7 +18,7 @@ export function useMockingState(): MockingState {
         method: 'GET',
         path: '/api/users',
         status: 200,
-        active: true
+        active: true,
       },
       {
         id: 'user-error',
@@ -27,14 +26,14 @@ export function useMockingState(): MockingState {
         method: 'GET',
         path: '/api/users',
         status: 500,
-        active: false
-      }
+        active: false,
+      },
     ];
 
     const mockProfile: ProfileInfo = {
       name: 'Development',
       active: true,
-      presets: mockPresets.filter(p => p.active)
+      presets: mockPresets.filter((p) => p.active),
     };
 
     const mockApiCalls: ApiCall[] = [
@@ -45,15 +44,15 @@ export function useMockingState(): MockingState {
         path: '/api/users',
         status: 200,
         preset: 'user-success',
-        duration: 45
-      }
+        duration: 45,
+      },
     ];
 
     setState({
       enabled: true,
-      activePresets: mockPresets.filter(p => p.active),
+      activePresets: mockPresets.filter((p) => p.active),
       activeProfile: mockProfile,
-      recentApiCalls: mockApiCalls
+      recentApiCalls: mockApiCalls,
     });
   }, []);
 

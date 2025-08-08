@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 
 interface BottomSheetProps {
@@ -14,7 +13,7 @@ export function BottomSheet({
   onClose,
   minHeight = 300,
   maxHeight = 600,
-  defaultHeight = 400
+  defaultHeight = 400,
 }: BottomSheetProps) {
   const [height, setHeight] = useState(defaultHeight);
   const [isDragging, setIsDragging] = useState(false);
@@ -79,9 +78,7 @@ export function BottomSheet({
         </div>
 
         {/* Content */}
-        <div className="h-full pb-6 overflow-hidden">
-          {children}
-        </div>
+        <div className="h-full pb-6 overflow-hidden">{children}</div>
       </div>
     </>
   );

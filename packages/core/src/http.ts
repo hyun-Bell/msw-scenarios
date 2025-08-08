@@ -23,7 +23,7 @@ import {
 // Local type for HttpRequestResolverExtras
 type HttpRequestResolverExtras<Params = PathParams> = {
   params: Params;
-  cookies: Record<string, string>; 
+  cookies: Record<string, string>;
   request: Request;
 };
 
@@ -64,7 +64,7 @@ function createMethodHandler<K extends HttpMethodLiteral>(
             return resolver(info);
           }
           // Otherwise, execute the preset function
-          response = await (response as Function)(info);
+          response = await (response as (...args: any[]) => any)(info);
         }
 
         // Apply override if provided
@@ -85,35 +85,43 @@ function createMethodHandler<K extends HttpMethodLiteral>(
 
     // Create base MSW handler
     const baseHandler = originalMethod(path, wrappedResolver) as HttpHandler;
-    
+
     // Default preset
     const defaultPreset = {
       label: 'default',
       status: 200,
       response: resolver as PresetResponse<ResponseBodyType>,
     };
-    
+
     // Create preset handler with prototype delegation
-    const handler = Object.create(baseHandler) as PresetHandler<ResponseBodyType, K, RequestPath, 'default'>;
-    
+    const handler = Object.create(baseHandler) as PresetHandler<
+      ResponseBodyType,
+      K,
+      RequestPath,
+      'default'
+    >;
+
     // Add preset-specific properties
     Object.defineProperties(handler, {
       _method: { value: method, enumerable: true },
       _path: { value: path, enumerable: true },
       _responseType: { value: {} as ResponseBodyType, enumerable: true },
-      _presets: { 
+      _presets: {
         value: [defaultPreset],
         writable: true,
-        enumerable: true 
+        enumerable: true,
       },
       _labels: {
         value: 'default' as const,
         writable: true,
-        enumerable: true
+        enumerable: true,
       },
-      
+
       presets: {
-        value: function<const NewLabels extends string, const NewResponse = ResponseBodyType>(
+        value: function <
+          const NewLabels extends string,
+          const NewResponse = ResponseBodyType,
+        >(
           ...presets: ReadonlyArray<{
             label: NewLabels;
             status: number;
@@ -122,93 +130,112 @@ function createMethodHandler<K extends HttpMethodLiteral>(
         ) {
           const pathStr = typeof path === 'string' ? path : path.toString();
           const newPresets = [defaultPreset, ...presets];
-          const newHandler = Object.create(baseHandler) as PresetHandler<NewResponse, K, RequestPath, NewLabels | 'default'>;
-          
+          const newHandler = Object.create(baseHandler) as PresetHandler<
+            NewResponse,
+            K,
+            RequestPath,
+            NewLabels | 'default'
+          >;
+
           // Copy properties with updated types
           Object.defineProperties(newHandler, {
             _method: { value: method, enumerable: true },
             _path: { value: path, enumerable: true },
             _responseType: { value: {} as NewResponse, enumerable: true },
-            _presets: { 
+            _presets: {
               value: newPresets,
               writable: true,
-              enumerable: true 
+              enumerable: true,
             },
             _labels: {
               value: undefined as any,
               writable: true,
-              enumerable: true
+              enumerable: true,
             },
             presets: { value: this.presets, enumerable: true },
             addPreset: { value: this.addPreset, enumerable: true },
-            getCurrentPreset: { value: this.getCurrentPreset, enumerable: true },
-            reset: { value: this.reset, enumerable: true }
+            getCurrentPreset: {
+              value: this.getCurrentPreset,
+              enumerable: true,
+            },
+            reset: { value: this.reset, enumerable: true },
           });
-          
+
           presetActions.setPresets(pathStr, newPresets as any);
           return newHandler;
         },
-        enumerable: true
+        enumerable: true,
       },
-      
+
       addPreset: {
-        value: function<const NewLabels extends string, const NewResponse = ResponseBodyType>(
-          preset: PresetBase<NewResponse> & { label: NewLabels }
-        ) {
+        value: function <
+          const NewLabels extends string,
+          const NewResponse = ResponseBodyType,
+        >(preset: PresetBase<NewResponse> & { label: NewLabels }) {
           const pathStr = typeof path === 'string' ? path : path.toString();
           const newPresets = [...this._presets, preset];
-          const currentLabels = this._labels || 'default';
-          const newHandler = Object.create(baseHandler) as PresetHandler<NewResponse, K, RequestPath, typeof currentLabels | NewLabels>;
-          
+          const newHandler = Object.create(baseHandler) as PresetHandler<
+            NewResponse,
+            K,
+            RequestPath,
+            | (typeof this._labels extends string
+                ? typeof this._labels
+                : 'default')
+            | NewLabels
+          >;
+
           // Copy properties with updated types
           Object.defineProperties(newHandler, {
             _method: { value: method, enumerable: true },
             _path: { value: path, enumerable: true },
             _responseType: { value: {} as NewResponse, enumerable: true },
-            _presets: { 
+            _presets: {
               value: newPresets,
               writable: true,
-              enumerable: true 
+              enumerable: true,
             },
             _labels: {
               value: undefined as any,
               writable: true,
-              enumerable: true
+              enumerable: true,
             },
             presets: { value: this.presets, enumerable: true },
             addPreset: { value: this.addPreset, enumerable: true },
-            getCurrentPreset: { value: this.getCurrentPreset, enumerable: true },
-            reset: { value: this.reset, enumerable: true }
+            getCurrentPreset: {
+              value: this.getCurrentPreset,
+              enumerable: true,
+            },
+            reset: { value: this.reset, enumerable: true },
           });
-          
+
           presetActions.setPresets(pathStr, newPresets as any);
           return newHandler;
         },
-        enumerable: true
+        enumerable: true,
       },
-      
+
       getCurrentPreset: {
-        value: function() {
+        value: function () {
           const pathStr = typeof path === 'string' ? path : path.toString();
           const state = mockingState.getEndpointState(method, pathStr);
           return state?.preset;
         },
-        enumerable: true
+        enumerable: true,
       },
-      
+
       reset: {
-        value: function() {
+        value: function () {
           const pathStr = typeof path === 'string' ? path : path.toString();
           mockingState.resetEndpoint(method, pathStr);
         },
-        enumerable: true
-      }
+        enumerable: true,
+      },
     });
-    
+
     // Initialize presets in store
     const pathStr = typeof path === 'string' ? path : path.toString();
     presetActions.setPresets(pathStr, [defaultPreset] as any);
-    
+
     return handler;
   } as HttpMethodHandler<K>;
 }

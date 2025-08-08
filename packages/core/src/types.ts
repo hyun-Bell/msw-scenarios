@@ -25,7 +25,7 @@ export const HttpMethods = {
   ALL: 'all',
 } as const;
 
-export type HttpMethodLiteral = typeof HttpMethods[keyof typeof HttpMethods];
+export type HttpMethodLiteral = (typeof HttpMethods)[keyof typeof HttpMethods];
 
 // Simplified Response Types using TypeScript 5 features
 export type PresetResponseFunction<T, P extends PathParams = PathParams> = (
@@ -75,9 +75,11 @@ export interface PresetHandler<
   readonly _method: Method;
   readonly _path: RequestPath;
   readonly _responseType: Response;
-  readonly _presets: ReadonlyArray<PresetBase<Response> & { label: Labels | 'default' }>;
+  readonly _presets: ReadonlyArray<
+    PresetBase<Response> & { label: Labels | 'default' }
+  >;
   readonly _labels: Labels | 'default';
-  
+
   presets<const NewLabels extends string, const NewResponse = Response>(
     ...presets: ReadonlyArray<{
       label: NewLabels;
@@ -126,10 +128,7 @@ export interface MockingState {
   subscribeToChanges(callback: StatusSubscriber): () => void;
   resetAll(): void;
   resetEndpoint(method: string, path: string): void;
-  getEndpointState(
-    method: string,
-    path: string
-  ): SelectedPreset | undefined;
+  getEndpointState(method: string, path: string): SelectedPreset | undefined;
   setSelected(method: string, path: string, preset: SelectedPreset): void;
   setCurrentProfile<Name extends string = string>(
     profileName: Name | null
@@ -148,9 +147,12 @@ export type HandlerInfo<H extends PresetHandler> = {
 };
 
 // Simplified Utility Types using TypeScript 5 NoInfer
-export type ExtractMethod<H> = H extends PresetHandler<any, infer M> ? M : never;
-export type ExtractPath<H> = H extends PresetHandler<any, any, infer P> ? P : never;
-export type ExtractResponseType<H> = H extends PresetHandler<infer R> ? R : never;
+export type ExtractMethod<H> =
+  H extends PresetHandler<any, infer M> ? M : never;
+export type ExtractPath<H> =
+  H extends PresetHandler<any, any, infer P> ? P : never;
+export type ExtractResponseType<H> =
+  H extends PresetHandler<infer R> ? R : never;
 
 // Mock Profile Types with const type parameters
 export interface MockProfileHandlers<H extends readonly PresetHandler[]> {
@@ -171,21 +173,37 @@ export interface MockProfile<
 type ExtractHandlerByMethodAndPath<
   H extends readonly PresetHandler[],
   M extends HttpMethodLiteral,
-  P extends Path
+  P extends Path,
 > = Extract<H[number], { _method: M; _path: P }>;
 
 type ExtractResponseByMethodAndPath<
   H extends readonly PresetHandler[],
   M extends HttpMethodLiteral,
-  P extends Path
-> = ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<infer R, any, any, any> ? R : never;
+  P extends Path,
+> =
+  ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<
+    infer R,
+    any,
+    any,
+    any
+  >
+    ? R
+    : never;
 
 // Extract preset labels for a specific handler
 type ExtractPresetLabels<
   H extends readonly PresetHandler[],
   M extends HttpMethodLiteral,
-  P extends Path
-> = ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<any, any, any, infer L> ? L : never;
+  P extends Path,
+> =
+  ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<
+    any,
+    any,
+    any,
+    infer L
+  >
+    ? L
+    : never;
 
 // Extended Handler Types with improved type inference and narrowing
 export interface UseMockOptions<
@@ -198,17 +216,21 @@ export interface UseMockOptions<
   preset?: ExtractPresetLabels<H, M, P>;
   response?: ExtractResponseByMethodAndPath<H, M, P>;
   status?: number;
-  override?: (draft: { data: Draft<ExtractResponseByMethodAndPath<H, M, P>> }) => void;
+  override?: (draft: {
+    data: Draft<ExtractResponseByMethodAndPath<H, M, P>>;
+  }) => void;
 }
 
 export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
   readonly handlers: H;
-  
+
   useMock<
     const M extends ExtractMethod<H[number]>,
     const P extends ExtractPath<H[number]>,
-  >(options: UseMockOptions<H, M, P>): void;
-  
+  >(
+    options: UseMockOptions<H, M, P>
+  ): void;
+
   useRealAPI<
     const M extends ExtractMethod<H[number]>,
     const P extends ExtractPath<H[number]>,
@@ -216,16 +238,18 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
     method: M;
     path: P;
   }): void;
-  
+
   getCurrentStatus(): ReadonlyArray<MockingStatus>;
   reset(): void;
   subscribeToChanges(subscriber: StatusSubscriber): () => void;
-  
+
   createMockProfiles<
     const Name extends string,
     const Profile extends MockProfile<H, Name>,
     const Profiles extends readonly [Profile, ...Profile[]],
-  >(...profiles: Profiles): ProfileManager<Profiles>;
+  >(
+    ...profiles: Profiles
+  ): ProfileManager<Profiles>;
 }
 
 export interface ProfileManager<
@@ -242,7 +266,11 @@ export interface ProfileManager<
 }
 
 // Type helper for better inference
-export type InferHandlerResponse<H> = H extends PresetHandler<infer R, any, any, any> ? R : never;
-export type InferHandlerMethod<H> = H extends PresetHandler<any, infer M, any, any> ? M : never;
-export type InferHandlerPath<H> = H extends PresetHandler<any, any, infer P, any> ? P : never;
-export type InferHandlerLabels<H> = H extends PresetHandler<any, any, any, infer L> ? L : never;
+export type InferHandlerResponse<H> =
+  H extends PresetHandler<infer R, any, any, any> ? R : never;
+export type InferHandlerMethod<H> =
+  H extends PresetHandler<any, infer M, any, any> ? M : never;
+export type InferHandlerPath<H> =
+  H extends PresetHandler<any, any, infer P, any> ? P : never;
+export type InferHandlerLabels<H> =
+  H extends PresetHandler<any, any, any, infer L> ? L : never;
