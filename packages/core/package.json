@@ -1,32 +1,31 @@
 {
-  "name": "msw-scenarios",
+  "name": "@msw-scenarios/core",
   "version": "0.3.0",
-  "description": "A monorepo for MSW scenario-based mocking library and React DevTools",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "description": "A scenario-based mocking library built on msw",
+  "main": "dist/msw-scenarios.umd.js",
+  "module": "dist/msw-scenarios.es.js",
+  "types": "dist/types/index.d.ts",
   "scripts": {
-    "build": "pnpm -r build",
-    "build:core": "pnpm --filter @msw-scenarios/core build",
-    "build:devtools": "pnpm --filter @msw-scenarios/react-devtools build",
-    "dev": "pnpm --filter @msw-scenarios/react-devtools dev",
-    "test": "pnpm -r test",
-    "test:core": "pnpm --filter @msw-scenarios/core test",
-    "test:e2e": "pnpm --filter @msw-scenarios/core test:e2e",
-    "test:e2e:ui": "pnpm --filter @msw-scenarios/core test:e2e:ui",
-    "test:e2e:dev": "pnpm --filter @msw-scenarios/core test:e2e:dev",
-    "lint": "pnpm -r lint",
-    "lint:fix": "pnpm -r lint:fix",
-    "format": "prettier --write \"packages/**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:check": "prettier --check \"packages/**/*.{js,jsx,ts,tsx,json,md}\"",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "build": "vite build",
+    "prepare": "pnpm run build",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,md}\"",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:dev": "next dev ./tests/e2e/test-app -p 3001",
+    "test:e2e:install": "playwright install --with-deps chromium"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/manofbackend/msw-scenarios.git"
+    "url": "git+https://github.com/manofbackend/msw-scenarios.git",
+    "directory": "packages/core"
   },
   "keywords": [
     "msw",
@@ -47,7 +46,6 @@
     "msw": "^2.6.6"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.5",
     "@playwright/test": "^1.49.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
