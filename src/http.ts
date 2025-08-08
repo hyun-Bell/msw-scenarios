@@ -1,4 +1,4 @@
-import { produce } from 'immer';
+import { produce, Draft } from 'immer';
 import {
   HttpResponse,
   HttpHandler,
@@ -16,18 +16,29 @@ import {
   HttpMethodLiteral,
   PresetHandler,
   SelectedPreset,
+  PresetBase,
+  PresetResponse,
 } from './types';
-import { HttpRequestResolverExtras } from 'msw/lib/core/handlers/HttpHandler';
 
+// Local type for HttpRequestResolverExtras
+type HttpRequestResolverExtras<Params = PathParams> = {
+  params: Params;
+  cookies: Record<string, string>; 
+  request: Request;
+};
+
+/**
+ * Factory function to create HTTP method handlers with TypeScript 5 features
+ */
 function createMethodHandler<K extends HttpMethodLiteral>(
   method: K,
-  originalMethod: Function
+  originalMethod: typeof originalHttp.get
 ): HttpMethodHandler<K> {
-  return <
+  return function methodHandler<
+    const RequestPath extends Path,
     Params extends PathParams = PathParams,
     RequestBodyType extends DefaultBodyType = DefaultBodyType,
     ResponseBodyType extends DefaultBodyType = undefined,
-    RequestPath extends Path = Path,
   >(
     path: RequestPath,
     resolver: ResponseResolver<
@@ -35,15 +46,8 @@ function createMethodHandler<K extends HttpMethodLiteral>(
       RequestBodyType,
       ResponseBodyType
     >
-  ): PresetHandler<
-    ResponseBodyType,
-    K,
-    RequestPath,
-    string,
-    ResponseBodyType,
-    Params,
-    RequestBodyType
-  > => {
+  ): PresetHandler<ResponseBodyType, K, RequestPath> {
+    // Wrap resolver to intercept and check for presets
     const wrappedResolver: typeof resolver = async (info) => {
       const pathStr = typeof path === 'string' ? path : path.toString();
       const state = mockingState.getEndpointState(method, pathStr) as
@@ -53,94 +57,116 @@ function createMethodHandler<K extends HttpMethodLiteral>(
       if (state) {
         let response = state.preset.response;
 
+        // Handle function responses
         if (typeof response === 'function') {
+          // If response is the original resolver, use it directly
           if (response === resolver) {
             return resolver(info);
           }
+          // Otherwise, execute the preset function
           response = await (response as Function)(info);
         }
 
+        // Apply override if provided
         if (state.override) {
-          response = produce(response, (draft: ResponseBodyType) => {
-            state.override!({ data: draft });
+          response = produce(response, (draft) => {
+            state.override!({ data: draft as Draft<ResponseBodyType> });
           });
         }
 
-        return HttpResponse.json(response, {
+        return HttpResponse.json(response as any, {
           status: state.preset.status,
         });
       }
 
+      // No preset active, use original resolver
       return resolver(info);
     };
 
-    const base = originalMethod(path, wrappedResolver) as HttpHandler;
+    // Create base MSW handler
+    const baseHandler = originalMethod(path, wrappedResolver) as HttpHandler;
+    
+    // Default preset
     const defaultPreset = {
       label: 'default',
       status: 200,
-      response: resolver,
+      response: resolver as PresetResponse<ResponseBodyType>,
     };
-
-    const handler = Object.create(base, {
+    
+    // Create preset handler with prototype delegation
+    const handler = Object.create(baseHandler) as PresetHandler<ResponseBodyType, K, RequestPath>;
+    
+    // Add preset-specific properties
+    Object.defineProperties(handler, {
       _method: { value: method, enumerable: true },
       _path: { value: path, enumerable: true },
       _responseType: { value: {} as ResponseBodyType, enumerable: true },
-      _presets: {
+      _presets: { 
         value: [defaultPreset],
         writable: true,
-        enumerable: true,
+        enumerable: true 
       },
-      _labels: { value: 'default', writable: true, enumerable: true },
+      
       presets: {
-        value: function <
-          Labels extends string,
-          Response extends DefaultBodyType,
-        >(
-          ...presets: Array<{
+        value: function<const Labels extends string, const NewResponse = ResponseBodyType>(
+          ...presets: ReadonlyArray<{
             label: Labels;
             status: number;
-            response: Response | (() => Promise<Response>);
+            response: PresetResponse<NewResponse>;
           }>
         ) {
           const pathStr = typeof path === 'string' ? path : path.toString();
-          this._presets = [defaultPreset, ...presets];
-          this._labels = presets[0].label;
-          presetActions.setPresets(pathStr, this._presets);
+          const newPresets = [defaultPreset, ...presets];
+          this._presets = newPresets;
+          presetActions.setPresets(pathStr, newPresets as any);
           return this;
         },
-        enumerable: true,
+        enumerable: true
       },
+      
       addPreset: {
-        value: function <Response extends DefaultBodyType>(preset: {
-          label: string;
-          status: number;
-          response: Response | (() => Promise<Response>);
-        }) {
+        value: function<const NewResponse = ResponseBodyType>(
+          preset: PresetBase<NewResponse>
+        ) {
           const pathStr = typeof path === 'string' ? path : path.toString();
-          this._presets = [...this._presets, preset];
-          presetActions.setPresets(pathStr, this._presets);
+          const newPresets = [...this._presets, preset];
+          this._presets = newPresets;
+          presetActions.setPresets(pathStr, newPresets as any);
           return this;
         },
-        enumerable: true,
+        enumerable: true
       },
-    }) as PresetHandler<
-      ResponseBodyType,
-      K,
-      RequestPath,
-      string,
-      ResponseBodyType,
-      Params,
-      RequestBodyType
-    >;
-
+      
+      getCurrentPreset: {
+        value: function() {
+          const pathStr = typeof path === 'string' ? path : path.toString();
+          const state = mockingState.getEndpointState(method, pathStr);
+          return state?.preset;
+        },
+        enumerable: true
+      },
+      
+      reset: {
+        value: function() {
+          const pathStr = typeof path === 'string' ? path : path.toString();
+          mockingState.resetEndpoint(method, pathStr);
+        },
+        enumerable: true
+      }
+    });
+    
+    // Initialize presets in store
     const pathStr = typeof path === 'string' ? path : path.toString();
-    presetActions.setPresets(pathStr, handler._presets);
-
+    presetActions.setPresets(pathStr, [defaultPreset] as any);
+    
     return handler;
-  };
+  } as HttpMethodHandler<K>;
 }
 
-export const http: Http = {
+/**
+ * Enhanced HTTP interface with TypeScript 5 const assertions and satisfies operator
+ */
+export const http = {
   get: createMethodHandler('get', originalHttp.get),
   post: createMethodHandler('post', originalHttp.post),
   put: createMethodHandler('put', originalHttp.put),
@@ -149,4 +175,4 @@ export const http: Http = {
   options: createMethodHandler('options', originalHttp.options),
   head: createMethodHandler('head', originalHttp.head),
   all: createMethodHandler('all', originalHttp.all),
-};
+} as const satisfies Http;

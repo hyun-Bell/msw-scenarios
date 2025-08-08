@@ -1,5 +1,5 @@
-import { SetupWorker } from 'msw/lib/browser';
-import { SetupServerApi } from 'msw/lib/node';
+import { SetupWorker } from 'msw/browser';
+import { SetupServer } from 'msw/node';
 import { PresetHandler } from './types';
 import { mockingState } from './mockingState';
 
@@ -10,7 +10,7 @@ type Instance =
     }
   | {
       type: 'node';
-      instance: SetupServerApi;
+      instance: SetupServer;
     }
   | null;
 
@@ -27,7 +27,7 @@ export const workerManager = {
       worker.use(...registeredHandlers);
     }
   },
-  setupServer: (server: SetupServerApi) => {
+  setupServer: (server: SetupServer) => {
     currentInstance = {
       type: 'node',
       instance: server,
