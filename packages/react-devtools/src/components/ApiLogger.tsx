@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+'use client';import React, { useState, useEffect } from 'react';
 import type { ApiCall } from '../types';
 
 export function ApiLogger() {

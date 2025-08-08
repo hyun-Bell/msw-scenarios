@@ -1,10 +1,17 @@
 {
   "name": "@msw-scenarios/react-devtools",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "React DevTools for MSW Scenarios - GUI interface for managing API mocking presets",
-  "main": "dist/index.js",
-  "module": "dist/index.es.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite dev",

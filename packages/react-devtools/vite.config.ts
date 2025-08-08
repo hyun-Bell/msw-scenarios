@@ -15,8 +15,8 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'MswScenariosReactDevtools',
-      formats: ['es', 'umd'],
-      fileName: (format) => `index.${format}.js`
+      formats: ['es'],
+      fileName: () => 'index.js'
     },
     rollupOptions: {
       external: ['react', 'react-dom', '@msw-scenarios/core'],

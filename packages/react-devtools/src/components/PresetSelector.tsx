@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+'use client';import React, { useState } from 'react';
 import { usePresetManager } from '../hooks/usePresetManager';
 import type { PresetInfo } from '../types';
 

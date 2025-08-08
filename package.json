@@ -4,7 +4,8 @@
   "description": "A monorepo for MSW scenario-based mocking library and React DevTools",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/examples/*"
   ],
   "scripts": {
     "build": "pnpm -r build",
@@ -16,6 +17,10 @@
     "test:e2e": "pnpm --filter @msw-scenarios/core test:e2e",
     "test:e2e:ui": "pnpm --filter @msw-scenarios/core test:e2e:ui",
     "test:e2e:dev": "pnpm --filter @msw-scenarios/core test:e2e:dev",
+    "example:dev": "pnpm --filter @msw-scenarios/example-nextjs-app-router dev",
+    "example:build": "pnpm --filter @msw-scenarios/example-nextjs-app-router build",
+    "example:start": "pnpm --filter @msw-scenarios/example-nextjs-app-router start",
+    "example:lint": "pnpm --filter @msw-scenarios/example-nextjs-app-router lint",
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "format": "prettier --write \"packages/**/*.{js,jsx,ts,tsx,json,md}\"",

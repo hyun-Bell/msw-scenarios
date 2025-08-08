@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+'use client';import React, { useState } from 'react';
 import { useProfileManager } from '../hooks/useProfileManager';
 import type { ProfileInfo } from '../types';
 

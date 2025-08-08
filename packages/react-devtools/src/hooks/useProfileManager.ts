@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+'use client';import { useState, useEffect } from 'react';
 import type { ProfileInfo, PresetInfo } from '../types';
 
 interface UseProfileManagerReturn {

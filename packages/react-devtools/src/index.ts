@@ -1,3 +1,5 @@
+'use client';
+
 export { MswDevtools } from './components/MswDevtools';
 export { BottomSheet } from './components/BottomSheet';
 export { PresetSelector } from './components/PresetSelector';
