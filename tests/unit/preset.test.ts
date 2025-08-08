@@ -47,12 +47,7 @@ describe('MSW Preset Handler Tests', () => {
 
     it('should handle async preset with params and override', async () => {
       const userHandler = http
-        .get<
-          { id: string },
-          any,
-          { user: { id: number; name: string } },
-          'http://localhost/api/users/:id'
-        >('http://localhost/api/users/:id', () => {
+        .get('http://localhost/api/users/:id', () => {
           return HttpResponse.json({ user: { id: 0, name: 'default' } });
         })
         .presets({
@@ -60,8 +55,10 @@ describe('MSW Preset Handler Tests', () => {
           status: 200,
           response: async ({ params }) => {
             await delay(100);
+            const id =
+              typeof params.id === 'string' ? params.id : params.id?.[0] || '0';
             return {
-              user: { id: parseInt(params.id), name: `User ${params.id}` },
+              user: { id: parseInt(id), name: `User ${id}` as string }, // Use string type for flexibility
             };
           },
         });
@@ -73,6 +70,7 @@ describe('MSW Preset Handler Tests', () => {
         path: 'http://localhost/api/users/:id',
         preset: 'userDetails',
         override: ({ data }) => {
+          // In immer draft, properties become mutable
           data.user.name = 'Overridden Name';
         },
       });
