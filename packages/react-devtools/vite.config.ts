@@ -8,15 +8,15 @@ export default defineConfig({
     react(),
     dts({
       insertTypesEntry: true,
-      exclude: ['**/*.stories.ts', '**/*.test.ts']
-    })
+      exclude: ['**/*.stories.ts', '**/*.test.ts'],
+    }),
   ],
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'MswScenariosReactDevtools',
       formats: ['es'],
-      fileName: () => 'index.js'
+      fileName: () => 'index.js',
     },
     rollupOptions: {
       external: ['react', 'react-dom', '@msw-scenarios/core'],
@@ -24,19 +24,19 @@ export default defineConfig({
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
-          '@msw-scenarios/core': 'MswScenariosCore'
-        }
-      }
+          '@msw-scenarios/core': 'MswScenariosCore',
+        },
+      },
     },
-    sourcemap: true
+    sourcemap: true,
   },
   server: {
     port: 3002,
-    open: true
+    open: true,
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
-    }
-  }
+      '@': resolve(__dirname, 'src'),
+    },
+  },
 });

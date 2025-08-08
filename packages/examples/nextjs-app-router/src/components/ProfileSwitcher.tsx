@@ -69,12 +69,14 @@ export function ProfileSwitcher({ onUpdate }: ProfileSwitcherProps) {
   };
 
   const getProfileInfo = (profileName: string) => {
-    return profileDescriptions[profileName as keyof typeof profileDescriptions] || {
-      description: '알 수 없는 프로필',
-      features: [],
-      color: 'gray',
-      icon: '❓',
-    };
+    return (
+      profileDescriptions[profileName as keyof typeof profileDescriptions] || {
+        description: '알 수 없는 프로필',
+        features: [],
+        color: 'gray',
+        icon: '❓',
+      }
+    );
   };
 
   return (
@@ -94,24 +96,32 @@ export function ProfileSwitcher({ onUpdate }: ProfileSwitcherProps) {
 
       {/* 현재 활성 프로필 표시 */}
       {currentProfile && (
-        <div className={clsx(
-          'rounded-lg p-4 border-l-4',
-          `border-${getProfileInfo(currentProfile).color}-500`,
-          `bg-${getProfileInfo(currentProfile).color}-50`
-        )}>
+        <div
+          className={clsx(
+            'rounded-lg p-4 border-l-4',
+            `border-${getProfileInfo(currentProfile).color}-500`,
+            `bg-${getProfileInfo(currentProfile).color}-50`
+          )}
+        >
           <div className="flex items-center">
-            <span className="text-lg mr-2">{getProfileInfo(currentProfile).icon}</span>
+            <span className="text-lg mr-2">
+              {getProfileInfo(currentProfile).icon}
+            </span>
             <div>
-              <h5 className={clsx(
-                'text-sm font-medium',
-                `text-${getProfileInfo(currentProfile).color}-800`
-              )}>
+              <h5
+                className={clsx(
+                  'text-sm font-medium',
+                  `text-${getProfileInfo(currentProfile).color}-800`
+                )}
+              >
                 현재 활성: {currentProfile}
               </h5>
-              <p className={clsx(
-                'text-xs mt-1',
-                `text-${getProfileInfo(currentProfile).color}-600`
-              )}>
+              <p
+                className={clsx(
+                  'text-xs mt-1',
+                  `text-${getProfileInfo(currentProfile).color}-600`
+                )}
+              >
                 {getProfileInfo(currentProfile).description}
               </p>
             </div>
@@ -124,7 +134,7 @@ export function ProfileSwitcher({ onUpdate }: ProfileSwitcherProps) {
         {availableProfiles.map((profileName) => {
           const info = getProfileInfo(profileName);
           const isActive = currentProfile === profileName;
-          
+
           return (
             <button
               key={profileName}
@@ -139,21 +149,25 @@ export function ProfileSwitcher({ onUpdate }: ProfileSwitcherProps) {
               <div className="flex items-start">
                 <span className="text-xl mr-3 flex-shrink-0">{info.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <h5 className={clsx(
-                    'text-sm font-medium',
-                    isActive ? `text-${info.color}-800` : 'text-gray-900'
-                  )}>
+                  <h5
+                    className={clsx(
+                      'text-sm font-medium',
+                      isActive ? `text-${info.color}-800` : 'text-gray-900'
+                    )}
+                  >
                     {profileName}
                   </h5>
-                  <p className={clsx(
-                    'text-xs mt-1',
-                    isActive ? `text-${info.color}-600` : 'text-gray-500'
-                  )}>
+                  <p
+                    className={clsx(
+                      'text-xs mt-1',
+                      isActive ? `text-${info.color}-600` : 'text-gray-500'
+                    )}
+                  >
                     {info.description}
                   </p>
                   <ul className="mt-2 space-y-1">
                     {info.features.map((feature, index) => (
-                      <li 
+                      <li
                         key={index}
                         className={clsx(
                           'text-xs flex items-center',
@@ -167,10 +181,12 @@ export function ProfileSwitcher({ onUpdate }: ProfileSwitcherProps) {
                   </ul>
                 </div>
                 {isActive && (
-                  <div className={clsx(
-                    'ml-2 flex-shrink-0 w-2 h-2 rounded-full',
-                    `bg-${info.color}-500`
-                  )}></div>
+                  <div
+                    className={clsx(
+                      'ml-2 flex-shrink-0 w-2 h-2 rounded-full',
+                      `bg-${info.color}-500`
+                    )}
+                  ></div>
                 )}
               </div>
             </button>
@@ -181,7 +197,11 @@ export function ProfileSwitcher({ onUpdate }: ProfileSwitcherProps) {
       {/* 도움말 */}
       <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
         <p className="font-medium mb-1">💡 프로필 사용법:</p>
-        <p>프로필을 선택하면 관련된 모든 API 엔드포인트가 해당 시나리오에 맞게 자동으로 설정됩니다. 우측 하단의 DevTools에서도 같은 기능을 사용할 수 있습니다.</p>
+        <p>
+          프로필을 선택하면 관련된 모든 API 엔드포인트가 해당 시나리오에 맞게
+          자동으로 설정됩니다. 우측 하단의 DevTools에서도 같은 기능을 사용할 수
+          있습니다.
+        </p>
       </div>
     </div>
   );

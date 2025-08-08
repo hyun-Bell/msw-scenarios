@@ -10,8 +10,16 @@ describe('Type Inference Tests', () => {
       })
       .presets(
         { label: 'empty' as const, status: 200, response: { users: [] } },
-        { label: 'withData' as const, status: 200, response: { users: [{ id: 1, name: 'John' }] } },
-        { label: 'error' as const, status: 404, response: { error: 'Not found' } }
+        {
+          label: 'withData' as const,
+          status: 200,
+          response: { users: [{ id: 1, name: 'John' }] },
+        },
+        {
+          label: 'error' as const,
+          status: 404,
+          response: { error: 'Not found' },
+        }
       );
 
     const handlers = extendHandlers(userHandler);
@@ -52,14 +60,22 @@ describe('Type Inference Tests', () => {
       .get('/api/users', () => HttpResponse.json({ type: 'users' }))
       .presets(
         { label: 'emptyUsers' as const, status: 200, response: { users: [] } },
-        { label: 'fullUsers' as const, status: 200, response: { users: [1, 2, 3] } }
+        {
+          label: 'fullUsers' as const,
+          status: 200,
+          response: { users: [1, 2, 3] },
+        }
       );
 
     const postHandler = http
       .get('/api/posts', () => HttpResponse.json({ type: 'posts' }))
       .presets(
         { label: 'emptyPosts' as const, status: 200, response: { posts: [] } },
-        { label: 'fullPosts' as const, status: 200, response: { posts: ['a', 'b'] } }
+        {
+          label: 'fullPosts' as const,
+          status: 200,
+          response: { posts: ['a', 'b'] },
+        }
       );
 
     const handlers = extendHandlers(userHandler, postHandler);
@@ -84,8 +100,16 @@ describe('Type Inference Tests', () => {
   it('should work with dynamic presets via addPreset', () => {
     const handler = http
       .get('/api/data', () => HttpResponse.json({ data: 'default' }))
-      .presets({ label: 'initial' as const, status: 200, response: { data: 'initial' } })
-      .addPreset({ label: 'added' as const, status: 200, response: { data: 'added' } });
+      .presets({
+        label: 'initial' as const,
+        status: 200,
+        response: { data: 'initial' },
+      })
+      .addPreset({
+        label: 'added' as const,
+        status: 200,
+        response: { data: 'added' },
+      });
 
     const handlers = extendHandlers(handler);
 

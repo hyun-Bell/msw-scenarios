@@ -19,7 +19,7 @@ export function UserList() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch('/api/users');
       const result: ApiResponse<User[]> = await response.json();
 
@@ -29,7 +29,9 @@ export function UserList() {
 
       setUsers(result.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      );
       setUsers([]);
     } finally {
       setLoading(false);
@@ -56,7 +58,11 @@ export function UserList() {
       <div className="text-center py-8">
         <div className="inline-flex items-center px-4 py-2 rounded-md bg-red-50 text-red-800 border border-red-200">
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
           </svg>
           오류: {error}
         </div>
@@ -73,8 +79,18 @@ export function UserList() {
   if (users.length === 0) {
     return (
       <div className="text-center py-8">
-        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-          <path d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A9.971 9.971 0 0124 28c4.432 0 7.962 3.582 8.287 8.001" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          className="mx-auto h-12 w-12 text-gray-400"
+          stroke="currentColor"
+          fill="none"
+          viewBox="0 0 48 48"
+        >
+          <path
+            d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A9.971 9.971 0 0124 28c4.432 0 7.962 3.582 8.287 8.001"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         <h3 className="mt-2 text-sm font-medium text-gray-900">사용자 없음</h3>
         <p className="mt-1 text-sm text-gray-500">등록된 사용자가 없습니다.</p>
@@ -117,20 +133,24 @@ export function UserList() {
                 {user.email}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  user.role === 'Admin' 
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    user.role === 'Admin'
+                      ? 'bg-purple-100 text-purple-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}
+                >
                   {user.role}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  user.status === 'active' 
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    user.status === 'active'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
                   {user.status === 'active' ? '활성' : '비활성'}
                 </span>
               </td>

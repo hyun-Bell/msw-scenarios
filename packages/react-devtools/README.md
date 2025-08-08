@@ -30,9 +30,9 @@ function App() {
   return (
     <div>
       {/* Your app content */}
-      
+
       {/* Add MSW DevTools */}
-      <MswDevtools 
+      <MswDevtools
         position="bottom-right"
         enableKeyboardShortcuts={true}
         theme="auto"
@@ -46,12 +46,12 @@ function App() {
 
 ### MswDevtools Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `position` | `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` | `'bottom-right'` | Position of the floating toggle button |
-| `defaultOpen` | `boolean` | `false` | Whether the devtools panel is open by default |
-| `enableKeyboardShortcuts` | `boolean` | `true` | Enable Ctrl+Shift+M keyboard shortcut |
-| `theme` | `'light' \| 'dark' \| 'auto'` | `'auto'` | Theme preference |
+| Prop                      | Type                                                           | Default          | Description                                   |
+| ------------------------- | -------------------------------------------------------------- | ---------------- | --------------------------------------------- |
+| `position`                | `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` | `'bottom-right'` | Position of the floating toggle button        |
+| `defaultOpen`             | `boolean`                                                      | `false`          | Whether the devtools panel is open by default |
+| `enableKeyboardShortcuts` | `boolean`                                                      | `true`           | Enable Ctrl+Shift+M keyboard shortcut         |
+| `theme`                   | `'light' \| 'dark' \| 'auto'`                                  | `'auto'`         | Theme preference                              |
 
 ## Components
 

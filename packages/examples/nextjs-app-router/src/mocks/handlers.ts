@@ -12,9 +12,27 @@ interface ApiResponse<T = any> {
 
 // 예제 사용자 데이터
 const successUsers: User[] = [
-  { id: 1, name: '김철수', email: 'kim@example.com', role: 'Admin', status: 'active' },
-  { id: 2, name: '이영희', email: 'lee@example.com', role: 'User', status: 'active' },
-  { id: 3, name: '박민수', email: 'park@example.com', role: 'User', status: 'inactive' },
+  {
+    id: 1,
+    name: '김철수',
+    email: 'kim@example.com',
+    role: 'Admin',
+    status: 'active',
+  },
+  {
+    id: 2,
+    name: '이영희',
+    email: 'lee@example.com',
+    role: 'User',
+    status: 'active',
+  },
+  {
+    id: 3,
+    name: '박민수',
+    email: 'park@example.com',
+    role: 'User',
+    status: 'inactive',
+  },
 ];
 
 const emptyUsers: User[] = [];
@@ -52,7 +70,7 @@ const usersHandler = http
       status: 200,
       response: async () => {
         // 3초 로딩 시뮬레이션
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         return {
           success: true,
           data: successUsers,
@@ -100,11 +118,14 @@ const createUserHandler = http
       status: 'active',
     };
 
-    return Response.json({
-      success: true,
-      data: newUser,
-      message: '사용자가 성공적으로 생성되었습니다.',
-    } as ApiResponse<User>, { status: 201 });
+    return Response.json(
+      {
+        success: true,
+        data: newUser,
+        message: '사용자가 성공적으로 생성되었습니다.',
+      } as ApiResponse<User>,
+      { status: 201 }
+    );
   })
   .presets(
     {
@@ -172,14 +193,22 @@ export const profiles = handlers.createMockProfiles(
     name: '오류 상태',
     actions: ({ useMock }) => {
       useMock({ method: 'get', path: '/api/users', preset: 'server_error' });
-      useMock({ method: 'post', path: '/api/users', preset: 'validation_error' });
+      useMock({
+        method: 'post',
+        path: '/api/users',
+        preset: 'validation_error',
+      });
     },
   },
   {
     name: '권한 오류',
     actions: ({ useMock }) => {
       useMock({ method: 'get', path: '/api/users', preset: 'unauthorized' });
-      useMock({ method: 'post', path: '/api/users', preset: 'validation_error' });
+      useMock({
+        method: 'post',
+        path: '/api/users',
+        preset: 'validation_error',
+      });
     },
   }
 );

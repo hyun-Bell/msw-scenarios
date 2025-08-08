@@ -80,7 +80,7 @@ export const profiles = handlers.createMockProfiles(
       useMock({ method: 'get', path: '/api/users', preset: 'success' });
       useMock({ method: 'post', path: '/api/users', preset: 'success' });
     },
-  },
+  }
   // ... 더 많은 프로필
 );
 ```
@@ -97,15 +97,15 @@ export const profiles = handlers.createMockProfiles(
 
 ### 개별 프리셋
 
-| 프리셋 | 설명 | HTTP 상태 |
-|--------|------|-----------|
-| `success` | 정상적인 사용자 목록 | 200 |
-| `empty` | 빈 사용자 목록 | 200 |
-| `loading` | 3초 지연된 응답 | 200 |
-| `server_error` | 서버 내부 오류 | 500 |
-| `network_error` | 네트워크 오류 | 503 |
-| `unauthorized` | 인증 오류 | 401 |
-| `real-api` | 실제 API 호출 | - |
+| 프리셋          | 설명                 | HTTP 상태 |
+| --------------- | -------------------- | --------- |
+| `success`       | 정상적인 사용자 목록 | 200       |
+| `empty`         | 빈 사용자 목록       | 200       |
+| `loading`       | 3초 지연된 응답      | 200       |
+| `server_error`  | 서버 내부 오류       | 500       |
+| `network_error` | 네트워크 오류        | 503       |
+| `unauthorized`  | 인증 오류            | 401       |
+| `real-api`      | 실제 API 호출        | -         |
 
 ### 프로필 시나리오
 
@@ -124,7 +124,7 @@ export const profiles = handlers.createMockProfiles(
 handlers.useMock({
   method: 'get',
   path: '/api/users',
-  preset: 'loading'
+  preset: 'loading',
 });
 
 // 프로필 적용
@@ -133,22 +133,18 @@ profiles.useMock('오류 상태');
 // 실제 API로 전환
 handlers.useRealAPI({
   method: 'get',
-  path: '/api/users'
+  path: '/api/users',
 });
 ```
 
 ### 커스텀 프리셋 추가
 
 ```typescript
-const customHandler = http
-  .get('/api/custom', defaultResolver)
-  .presets(
-    {
-      label: 'custom_scenario',
-      status: 200,
-      response: { custom: 'data' }
-    }
-  );
+const customHandler = http.get('/api/custom', defaultResolver).presets({
+  label: 'custom_scenario',
+  status: 200,
+  response: { custom: 'data' },
+});
 ```
 
 ## 🧪 테스트 시나리오
@@ -178,8 +174,8 @@ NODE_ENV=development    # DevTools 활성화
 
 ```typescript
 worker.start({
-  onUnhandledRequest: 'bypass',  // 처리되지 않은 요청 허용
-  quiet: false,                  // 콘솔 로그 표시
+  onUnhandledRequest: 'bypass', // 처리되지 않은 요청 허용
+  quiet: false, // 콘솔 로그 표시
 });
 ```
 
@@ -202,9 +198,11 @@ worker.start({
 `src/app/layout.tsx`에서 DevTools 위치 조정:
 
 ```tsx
-{process.env.NODE_ENV === 'development' && (
-  <MswDevtools position="top-right" />
-)}
+{
+  process.env.NODE_ENV === 'development' && (
+    <MswDevtools position="top-right" />
+  );
+}
 ```
 
 ## 📚 참고 자료

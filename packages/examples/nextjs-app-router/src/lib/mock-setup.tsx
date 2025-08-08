@@ -10,7 +10,10 @@ interface MSWProviderProps {
 export function MSWProvider({ children }: MSWProviderProps) {
   useEffect(() => {
     // 브라우저 환경에서만 MSW 초기화
-    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    if (
+      typeof window !== 'undefined' &&
+      process.env.NODE_ENV === 'development'
+    ) {
       initMSW().catch(console.error);
     }
   }, []);

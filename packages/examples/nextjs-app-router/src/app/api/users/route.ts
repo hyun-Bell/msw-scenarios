@@ -36,14 +36,15 @@ const mockUsers: User[] = [
 export async function GET() {
   try {
     // 실제 환경에서는 데이터베이스나 외부 API에서 데이터를 가져옴
-    await new Promise(resolve => setTimeout(resolve, 500)); // 로딩 시뮬레이션
-    
+    await new Promise((resolve) => setTimeout(resolve, 500)); // 로딩 시뮬레이션
+
     return NextResponse.json({
       success: true,
       data: mockUsers,
       message: '사용자 목록을 성공적으로 가져왔습니다.',
     });
   } catch (error) {
+    console.error('GET /api/users error:', error);
     return NextResponse.json(
       {
         success: false,
@@ -81,14 +82,18 @@ export async function POST(request: Request) {
       status: 'active',
     };
 
-    await new Promise(resolve => setTimeout(resolve, 300)); // 저장 시뮬레이션
+    await new Promise((resolve) => setTimeout(resolve, 300)); // 저장 시뮬레이션
 
-    return NextResponse.json({
-      success: true,
-      data: newUser,
-      message: '사용자가 성공적으로 생성되었습니다.',
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: newUser,
+        message: '사용자가 성공적으로 생성되었습니다.',
+      },
+      { status: 201 }
+    );
   } catch (error) {
+    console.error('POST /api/users error:', error);
     return NextResponse.json(
       {
         success: false,

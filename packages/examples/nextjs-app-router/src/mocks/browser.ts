@@ -11,13 +11,13 @@ export async function initMSW() {
     try {
       // 동적 import로 MSW browser 모듈 로드
       const { setupWorker } = await import('msw/browser');
-      
+
       // Worker 생성
       const worker = setupWorker();
-      
+
       // Worker Manager에 등록
       workerManager.setupWorker(worker);
-      
+
       // Worker 시작
       return worker.start({
         onUnhandledRequest: 'bypass',

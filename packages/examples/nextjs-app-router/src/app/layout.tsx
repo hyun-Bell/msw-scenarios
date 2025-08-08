@@ -8,7 +8,8 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'MSW Scenarios Example',
-  description: 'Next.js App Router example with MSW Scenarios and React DevTools',
+  description:
+    'Next.js App Router example with MSW Scenarios and React DevTools',
 };
 
 export default function RootLayout({

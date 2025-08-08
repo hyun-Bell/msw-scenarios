@@ -11,13 +11,13 @@ export async function initMSWServer() {
     try {
       // 동적 import로 MSW node 모듈 로드
       const { setupServer } = await import('msw/node');
-      
+
       // Server 생성
       const server = setupServer();
-      
+
       // Worker Manager에 등록
       workerManager.setupServer(server);
-      
+
       // Server 시작
       server.listen({
         onUnhandledRequest: 'bypass',
