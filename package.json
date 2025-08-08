@@ -1,6 +1,6 @@
 {
   "name": "msw-scenarios",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A scenario-based mocking library built on msw",
   "main": "dist/msw-scenarios.umd.js",
   "module": "dist/msw-scenarios.es.js",
@@ -16,7 +16,10 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:dev": "next dev ./tests/e2e/test-app -p 3001",
-    "test:e2e:install": "playwright install --with-deps chromium"
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "files": [
     "dist",
@@ -45,6 +48,7 @@
     "msw": "^2.6.6"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.5",
     "@playwright/test": "^1.49.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
@@ -76,5 +80,8 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
