@@ -220,7 +220,7 @@ export const presetSelectorStyles = {
         : isSelected
           ? '#a855f7'
           : theme.colors.border,
-      backgroundColor: isActive 
+      backgroundColor: isActive
         ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03))'
         : theme.colors.card,
       background: isActive
@@ -229,8 +229,8 @@ export const presetSelectorStyles = {
       transition: `all ${theme.animation.duration.fast} ${theme.animation.easing.default}`,
       cursor: 'pointer',
       boxShadow: isActive
-          ? '0 2px 8px rgba(59, 130, 246, 0.2), inset 0 0 0 2px rgba(59, 130, 246, 0.15)'
-          : isSelected
+        ? '0 2px 8px rgba(59, 130, 246, 0.2), inset 0 0 0 2px rgba(59, 130, 246, 0.15)'
+        : isSelected
           ? '0 0 0 2px rgba(168, 85, 247, 0.2)'
           : 'none',
       transform: 'scale(1)',
@@ -270,37 +270,40 @@ export const presetSelectorStyles = {
   } as CSSProperties,
 
   methodBadge: (method: string) => {
-    const configs: Record<string, { bg: string; color: string; border: string }> = {
-      GET: { 
-        bg: 'rgba(16, 185, 129, 0.1)', 
+    const configs: Record<
+      string,
+      { bg: string; color: string; border: string }
+    > = {
+      GET: {
+        bg: 'rgba(16, 185, 129, 0.1)',
         color: '#10b981',
-        border: 'rgba(16, 185, 129, 0.3)'
+        border: 'rgba(16, 185, 129, 0.3)',
       },
-      POST: { 
-        bg: 'rgba(59, 130, 246, 0.1)', 
+      POST: {
+        bg: 'rgba(59, 130, 246, 0.1)',
         color: '#3b82f6',
-        border: 'rgba(59, 130, 246, 0.3)'
+        border: 'rgba(59, 130, 246, 0.3)',
       },
-      PUT: { 
-        bg: 'rgba(245, 158, 11, 0.1)', 
+      PUT: {
+        bg: 'rgba(245, 158, 11, 0.1)',
         color: '#f59e0b',
-        border: 'rgba(245, 158, 11, 0.3)'
+        border: 'rgba(245, 158, 11, 0.3)',
       },
-      PATCH: { 
-        bg: 'rgba(139, 92, 246, 0.1)', 
+      PATCH: {
+        bg: 'rgba(139, 92, 246, 0.1)',
         color: '#8b5cf6',
-        border: 'rgba(139, 92, 246, 0.3)'
+        border: 'rgba(139, 92, 246, 0.3)',
       },
-      DELETE: { 
-        bg: 'rgba(239, 68, 68, 0.1)', 
+      DELETE: {
+        bg: 'rgba(239, 68, 68, 0.1)',
         color: '#ef4444',
-        border: 'rgba(239, 68, 68, 0.3)'
+        border: 'rgba(239, 68, 68, 0.3)',
       },
     };
     const config = configs[method.toUpperCase()] || {
       bg: 'rgba(107, 114, 128, 0.1)',
       color: '#6b7280',
-      border: 'rgba(107, 114, 128, 0.3)'
+      border: 'rgba(107, 114, 128, 0.3)',
     };
 
     return {
@@ -322,7 +325,7 @@ export const presetSelectorStyles = {
     let backgroundColor = '';
     let color = '';
     let borderColor = '';
-    
+
     if (status >= 200 && status < 300) {
       backgroundColor = 'rgba(16, 185, 129, 0.1)';
       color = '#10b981';
@@ -433,7 +436,7 @@ export const presetSelectorStyles = {
     fontSize: '14px',
     color: theme.colors.mutedForeground,
   } as CSSProperties,
-  
+
   // Additional styles for PresetSelectorRuntimeFixed
   emptyTitle: {
     fontSize: '1.125rem',
@@ -441,13 +444,13 @@ export const presetSelectorStyles = {
     color: theme.colors.foreground,
     marginTop: theme.spacing[3],
   } as CSSProperties,
-  
+
   loadingSpinner: {
     width: '48px',
     height: '48px',
     animation: 'spin 1s linear infinite',
   } as CSSProperties,
-  
+
   presetGroupHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -479,20 +482,20 @@ export const presetSelectorStyles = {
     borderRadius: theme.radius.full,
     animation: 'pulse 2s infinite',
   } as CSSProperties,
-  
+
   presetGroupContent: {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: theme.spacing[2],
     paddingLeft: theme.spacing[2],
   } as CSSProperties,
-  
+
   presetEndpoint: {
     fontSize: '0.875rem',
     fontWeight: 600,
     color: theme.colors.foreground,
   } as CSSProperties,
-  
+
   presetStatus: {
     fontSize: '0.75rem',
     color: theme.colors.mutedForeground,

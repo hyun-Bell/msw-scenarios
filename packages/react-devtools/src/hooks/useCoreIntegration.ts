@@ -24,7 +24,7 @@ export function useCoreIntegration() {
         try {
           // Try window.__MSW_SCENARIOS__ first (set by browser.ts)
           let mswCore = (window as any).__MSW_SCENARIOS__;
-          let mswHandlers = (window as any).__MSW_HANDLERS__;
+          const mswHandlers = (window as any).__MSW_HANDLERS__;
 
           // If not found, try to import from @msw-scenarios/core
           if (!mswCore) {
@@ -182,7 +182,7 @@ export function useCoreIntegration() {
             core.workerManager.updateHandlers();
           }
 
-          console.log(`[DevTools] Preset toggled successfully`);
+          console.log('[DevTools] Preset toggled successfully');
         } catch (error) {
           console.error('[DevTools] Failed to toggle preset:', error);
         }

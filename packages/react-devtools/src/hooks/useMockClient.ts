@@ -77,14 +77,14 @@ export function useMockClientPresets(
 
   const togglePreset = (presetId: string) => {
     if (!client) return;
-    
+
     // Use MockClient's togglePreset method
     client.togglePreset(presetId);
   };
 
   const clearAllPresets = () => {
     if (!client) return;
-    
+
     // Use MockClient's clearAllPresets method
     client.clearAllPresets();
   };

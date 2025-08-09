@@ -138,7 +138,7 @@ export const apiLoggerStyles = {
 
   statusBadge: (status: number) => {
     let backgroundColor = '#6b7280';
-    let color = 'white';
+    const color = 'white';
 
     if (status === 0) {
       backgroundColor = '#dc2626';

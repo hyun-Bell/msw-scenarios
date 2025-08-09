@@ -40,7 +40,9 @@ export const profileManagerStyles = {
       borderWidth: '1px',
       borderStyle: 'solid',
       borderColor: isActive ? theme.colors.primary : theme.colors.border,
-      backgroundColor: isActive ? 'rgba(59, 130, 246, 0.05)' : theme.colors.card,
+      backgroundColor: isActive
+        ? 'rgba(59, 130, 246, 0.05)'
+        : theme.colors.card,
       cursor: isActive ? 'default' : 'pointer',
       transition: `all ${theme.animation.duration.fast} ${theme.animation.easing.default}`,
       boxShadow: isActive ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
@@ -130,7 +132,7 @@ export const profileManagerStyles = {
   } as CSSProperties,
 
   presetChip: {
-    padding: `4px 10px`,
+    padding: '4px 10px',
     fontSize: '11px',
     backgroundColor: 'rgba(107, 114, 128, 0.1)',
     color: theme.colors.mutedForeground,
