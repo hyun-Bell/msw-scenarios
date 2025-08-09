@@ -29,5 +29,3 @@ dist-ssr
 
 
 coverage
-
-tests/e2e/test-app/test-dist/

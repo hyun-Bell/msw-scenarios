@@ -1,0 +1,81 @@
+{
+  "name": "@msw-scenarios/core",
+  "version": "0.4.0",
+  "description": "A scenario-based mocking library built on msw",
+  "main": "dist/msw-scenarios.umd.js",
+  "module": "dist/msw-scenarios.es.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "build": "vite build",
+    "prepare": "pnpm run build",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,md}\"",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:dev": "next dev ./tests/e2e/test-app -p 3001",
+    "test:e2e:install": "playwright install --with-deps chromium"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/manofbackend/msw-scenarios.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "msw",
+    "mocking",
+    "typescript",
+    "scenario-based"
+  ],
+  "author": "hyunBell",
+  "license": "MIT",
+  "homepage": "https://github.com/manofbackend/msw-scenarios#readme",
+  "peerDependencies": {
+    "msw": "^2.6.0"
+  },
+  "dependencies": {
+    "immer": "^10.1.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.1",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.7.0",
+    "next": "^15.0.4",
+    "postcss": "^8.4.49",
+    "prettier": "^3.3.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.16",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.3",
+    "vite": "^4.0.0",
+    "vite-plugin-dts": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

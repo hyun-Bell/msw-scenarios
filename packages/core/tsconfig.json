@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "jest"],
+    "module": "ESNext",
+    "strict": true,
+    "jsx": "react",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "verbatimModuleSyntax": false,
+    "composite": true,
+    "outDir": "./dist"
+  },
+  "include": [
+    "src",
+    "jest.config.js",
+    ".eslintrc.js",
+    "tests",
+    "tests/unit/**/*.test.ts",
+    "tests/e2e/specs/**/*.spec.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

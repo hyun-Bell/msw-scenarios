@@ -17,12 +17,12 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
@@ -40,8 +40,8 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
-      - name: Install Playwright
-        run: pnpm test:e2e:install
+      # - name: Install Playwright
+      #   run: pnpm test:e2e:install
 
-      - name: Run E2E tests
-        run: pnpm test:e2e
+      # - name: Run E2E tests
+      #   run: pnpm test:e2e

@@ -1,20 +1,27 @@
-# msw-scenarios
+# MSW Scenarios Monorepo
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/b67bbc6f-bb2b-46ec-8e4a-76652a777f04" alt="msw-scenarios Logo" width="400" style="border-radius: 15px;"/>
 </p>
 
 <div align="center">
-  <a href="#installation">Installation</a> • 
+  <a href="#packages">Packages</a> • 
   <a href="#key-features">Features</a> • 
-  <a href="#usage">Usage</a> • 
-  <a href="#api">API</a> • 
-  <a href="#examples">Examples</a>
+  <a href="#quick-start">Quick Start</a> • 
+  <a href="#development">Development</a>
 </div>
 
 <br />
 
-`msw-scenarios` is a **type-safe** preset management system built on top of [MSW (Mock Service Worker) 2.x.x](https://mswjs.io/). This library enhances MSW with a powerful preset system while maintaining complete TypeScript integration, ensuring that your API mocks are both flexible and type-safe during development and testing.
+A comprehensive ecosystem for scenario-based API mocking with [MSW (Mock Service Worker) 2.x.x](https://mswjs.io/). This monorepo provides both a **type-safe** preset management system and **visual devtools** for managing API mocks during development and testing.
+
+## 📦 Packages
+
+### [@msw-scenarios/core](./packages/core)
+Type-safe preset management system built on top of MSW 2.x.x with complete TypeScript integration.
+
+### [@msw-scenarios/react-devtools](./packages/react-devtools)  
+React DevTools GUI for managing API mock presets and profiles with an intuitive interface.
 
 > This library was inspired by the presentation at WOOWACON 2023:  
 > [프론트엔드 모킹 환경에 감칠맛 더하기](https://youtu.be/uiBCcmlJG4U?si=fZFCeQbxCCArA06a)
