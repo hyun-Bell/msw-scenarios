@@ -37,13 +37,10 @@
   "license": "MIT",
   "homepage": "https://github.com/manofbackend/msw-scenarios#readme",
   "peerDependencies": {
-    "msw": "^2.6.0",
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
+    "msw": "^2.6.0"
   },
   "dependencies": {
-    "immer": "^10.1.1",
-    "msw": "^2.6.6"
+    "immer": "^10.1.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

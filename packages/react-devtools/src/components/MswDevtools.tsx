@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { BottomSheet } from './BottomSheet';
-import { MockingStatus } from './MockingStatus';
-import { PresetSelector } from './PresetSelector';
-import { ProfileManager } from './ProfileManager';
-import { ApiLogger } from './ApiLogger';
+import { useEffect, useState } from 'react';
 import { useMockingState } from '../hooks/useMockingState';
+import { injectStyles } from '../styles/inject';
+import { styles } from '../styles/styles';
 import type { DevtoolsProps } from '../types';
+import { ApiLoggerRuntime } from './ApiLoggerRuntime';
+import { MockingStatus } from './MockingStatus';
+import { PresetSelectorRuntime } from './PresetSelectorRuntimeFixed';
+import { ProfileManagerRuntime } from './ProfileManagerRuntime';
 
 export function MswDevtools({
   position = 'bottom-right',
   defaultOpen = false,
   enableKeyboardShortcuts = true,
-  theme = 'auto',
 }: DevtoolsProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [activeTab, setActiveTab] = useState<'presets' | 'profiles' | 'logs'>(
@@ -19,6 +19,13 @@ export function MswDevtools({
   );
   const mockingState = useMockingState();
 
+  // Inject CSS animations
+  useEffect(() => {
+    const cleanup = injectStyles();
+    return cleanup;
+  }, []);
+
+  // Keyboard shortcuts
   useEffect(() => {
     if (!enableKeyboardShortcuts) return;
 
@@ -30,46 +37,78 @@ export function MswDevtools({
         event.key === 'M'
       ) {
         event.preventDefault();
-        setIsOpen(!isOpen);
+        setIsOpen((prev) => !prev);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, enableKeyboardShortcuts]);
+  }, [enableKeyboardShortcuts]);
+
+  // Get position styles
+  const getPositionStyle = () => {
+    switch (position) {
+      case 'bottom-left':
+        return styles.floatingButtonBottomLeft;
+      case 'top-right':
+        return styles.floatingButtonTopRight;
+      case 'top-left':
+        return styles.floatingButtonTopLeft;
+      default:
+        return styles.floatingButtonBottomRight;
+    }
+  };
 
   return (
-    <>
+    <div style={styles.devtoolsContainer}>
       {/* Floating Toggle Button */}
       {!isOpen && (
-        <div className={`fixed z-50 ${getPositionClass(position)}`}>
-          <button
-            onClick={() => setIsOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-            title="Open MSW DevTools (Ctrl+Shift+M)"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-            </svg>
-          </button>
-        </div>
+        <button
+          onClick={() => setIsOpen(true)}
+          style={{
+            ...styles.floatingButton,
+            ...getPositionStyle(),
+          }}
+          className="msw-devtools-btn msw-devtools-button-enter"
+          title="Open MSW DevTools (Ctrl+Shift+M)"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+        </button>
       )}
 
-      {/* Main DevTools Panel */}
+      {/* Sheet Modal */}
       {isOpen && (
-        <BottomSheet onClose={() => setIsOpen(false)}>
-          <div className="h-full flex flex-col bg-white dark:bg-gray-900">
+        <>
+          {/* Overlay */}
+          <div
+            style={styles.overlay}
+            className="msw-devtools-overlay-enter"
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Sheet Content */}
+          <div style={styles.sheetContent} className="msw-devtools-sheet-enter">
+            {/* Drag Handle */}
+            <div
+              style={styles.dragHandle}
+              className="msw-devtools-drag-handle"
+            />
+
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  MSW DevTools
-                </h2>
+            <div style={styles.sheetHeader}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <h2 style={styles.sheetTitle}>MSW DevTools</h2>
                 <MockingStatus state={mockingState} />
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                style={styles.closeButton}
+                className="msw-devtools-close-btn"
+                aria-label="Close DevTools"
               >
                 <svg
                   width="20"
@@ -83,45 +122,36 @@ export function MswDevtools({
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <div style={styles.tabNavigation}>
               {[
-                { key: 'presets', label: 'Presets' },
-                { key: 'profiles', label: 'Profiles' },
-                { key: 'logs', label: 'API Logs' },
+                { key: 'presets' as const, label: 'Presets', icon: '⚙️' },
+                { key: 'profiles' as const, label: 'Profiles', icon: '👥' },
+                { key: 'logs' as const, label: 'API Logs', icon: '📋' },
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === tab.key
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  }`}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    ...styles.tabButton,
+                    ...(activeTab === tab.key ? styles.tabButtonActive : {}),
+                  }}
+                  className="msw-devtools-tab-btn"
                 >
+                  <span>{tab.icon}</span>
                   {tab.label}
                 </button>
               ))}
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-hidden">
-              {activeTab === 'presets' && <PresetSelector />}
-              {activeTab === 'profiles' && <ProfileManager />}
-              {activeTab === 'logs' && <ApiLogger />}
+            <div style={styles.contentArea}>
+              {activeTab === 'presets' && <PresetSelectorRuntime />}
+              {activeTab === 'profiles' && <ProfileManagerRuntime />}
+              {activeTab === 'logs' && <ApiLoggerRuntime />}
             </div>
           </div>
-        </BottomSheet>
+        </>
       )}
-    </>
+    </div>
   );
-}
-
-function getPositionClass(position: DevtoolsProps['position']): string {
-  const positions = {
-    'bottom-right': 'bottom-4 right-4',
-    'bottom-left': 'bottom-4 left-4',
-    'top-right': 'top-4 right-4',
-    'top-left': 'top-4 left-4',
-  };
-  return positions[position || 'bottom-right'];
 }

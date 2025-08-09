@@ -7,21 +7,27 @@ interface MockingStatusProps {
 }
 
 export function MockingStatus({ state }: MockingStatusProps) {
-  const { enabled, activePresets, activeProfile } = state;
+  const { enabled, activePresets } = state;
 
   return (
-    <div className="flex items-center space-x-3">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       {/* Mocking Enabled/Disabled Status */}
-      <div className="flex items-center space-x-2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <div
-          className={`w-2 h-2 rounded-full ${
-            enabled ? 'bg-green-500' : 'bg-gray-400'
-          }`}
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: enabled ? '#22c55e' : '#9ca3af',
+            flexShrink: 0,
+          }}
         />
         <span
-          className={`text-sm font-medium ${
-            enabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
-          }`}
+          style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: enabled ? '#16a34a' : '#6b7280',
+          }}
         >
           {enabled ? 'Active' : 'Inactive'}
         </span>
@@ -29,27 +35,27 @@ export function MockingStatus({ state }: MockingStatusProps) {
 
       {/* Active Presets Count */}
       {enabled && activePresets.length > 0 && (
-        <div className="flex items-center space-x-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '12px', color: '#6b7280' }}>
             {activePresets.length} preset{activePresets.length !== 1 ? 's' : ''}
           </span>
         </div>
       )}
 
       {/* Active Profile */}
-      {enabled && activeProfile && (
-        <div className="flex items-center space-x-1">
+      {enabled && state.activeProfile && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <svg
             width="12"
             height="12"
             viewBox="0 0 24 24"
             fill="currentColor"
-            className="text-blue-500"
+            style={{ color: '#f59e0b' }}
           >
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
-          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-            {activeProfile.name}
+          <span style={{ fontSize: '12px', color: '#6b7280' }}>
+            {state.activeProfile.name}
           </span>
         </div>
       )}

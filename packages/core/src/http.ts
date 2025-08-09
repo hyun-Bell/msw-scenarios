@@ -74,6 +74,8 @@ function createMethodHandler<K extends HttpMethodLiteral>(
           });
         }
 
+        // Use HttpResponse with proper status
+        // MSW will handle the request context internally
         return HttpResponse.json(response as any, {
           status: state.preset.status,
         });

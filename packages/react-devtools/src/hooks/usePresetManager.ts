@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useCoreIntegration } from './useCoreIntegration';
 import type { PresetInfo } from '../types';
 
 interface UsePresetManagerReturn {
@@ -11,116 +12,89 @@ interface UsePresetManagerReturn {
 }
 
 export function usePresetManager(): UsePresetManagerReturn {
+  const {
+    isConnected,
+    getPresets: getCorePresets,
+    togglePreset: coreTogglePreset,
+    clearAllPresets: coreClearAll,
+  } = useCoreIntegration();
+
   const [presets, setPresets] = useState<PresetInfo[]>([]);
   const [activePresets, setActivePresets] = useState<PresetInfo[]>([]);
 
+  // Initialize presets from core
   useEffect(() => {
-    // Mock presets - in real app, this would fetch from @msw-scenarios/core
-    const mockPresets: PresetInfo[] = [
-      {
-        id: 'user-list-success',
-        label: 'User List Success',
-        method: 'GET',
-        path: '/api/users',
-        status: 200,
-        active: true,
-      },
-      {
-        id: 'user-list-empty',
-        label: 'User List Empty',
-        method: 'GET',
-        path: '/api/users',
-        status: 200,
-        active: false,
-      },
-      {
-        id: 'user-list-error',
-        label: 'User List Server Error',
-        method: 'GET',
-        path: '/api/users',
-        status: 500,
-        active: false,
-      },
-      {
-        id: 'user-create-success',
-        label: 'Create User Success',
-        method: 'POST',
-        path: '/api/users',
-        status: 201,
-        active: false,
-      },
-      {
-        id: 'user-create-validation',
-        label: 'Create User Validation Error',
-        method: 'POST',
-        path: '/api/users',
-        status: 400,
-        active: false,
-      },
-      {
-        id: 'user-detail-success',
-        label: 'User Detail Success',
-        method: 'GET',
-        path: '/api/users/:id',
-        status: 200,
-        active: false,
-      },
-      {
-        id: 'user-detail-not-found',
-        label: 'User Not Found',
-        method: 'GET',
-        path: '/api/users/:id',
-        status: 404,
-        active: false,
-      },
-      {
-        id: 'posts-success',
-        label: 'Posts List Success',
-        method: 'GET',
-        path: '/api/posts',
-        status: 200,
-        active: false,
-      },
-    ];
+    if (!isConnected) return;
 
-    setPresets(mockPresets);
-    setActivePresets(mockPresets.filter((p) => p.active));
-  }, []);
+    const refreshPresetsFromCore = () => {
+      const corePresets = getCorePresets();
+      if (corePresets.length > 0) {
+        setPresets(corePresets);
 
-  const togglePreset = (preset: PresetInfo) => {
-    setPresets((prev) =>
-      prev.map((p) => (p.id === preset.id ? { ...p, active: !p.active } : p))
-    );
-
-    setActivePresets((prev) => {
-      const isCurrentlyActive = prev.some((p) => p.id === preset.id);
-      if (isCurrentlyActive) {
-        return prev.filter((p) => p.id !== preset.id);
-      } else {
-        return [...prev, { ...preset, active: true }];
+        // Update active presets based on what's active in core
+        const currentlyActive = corePresets.filter((p) => p.active);
+        setActivePresets(currentlyActive);
       }
-    });
+    };
 
-    // In real app, this would call @msw-scenarios/core methods:
-    // extendedHandlers.useMock({
-    //   method: preset.method.toLowerCase() as any,
-    //   path: preset.path,
-    //   preset: preset.label
-    // });
-  };
+    // Initial load
+    refreshPresetsFromCore();
 
-  const clearAllPresets = () => {
-    setPresets((prev) => prev.map((p) => ({ ...p, active: false })));
+    // Periodically sync with MSW state (every 1 second)
+    const interval = setInterval(refreshPresetsFromCore, 1000);
+
+    return () => clearInterval(interval);
+  }, [isConnected, getCorePresets]);
+
+  const togglePreset = useCallback(
+    (preset: PresetInfo) => {
+      const isCurrentlyActive = activePresets.some((p) => p.id === preset.id);
+
+      // Update local state immediately for UI responsiveness
+      const newActivePresets = isCurrentlyActive
+        ? activePresets.filter((p) => p.id !== preset.id)
+        : [...activePresets, preset];
+
+      setActivePresets(newActivePresets);
+
+      // Update presets list
+      setPresets((prev) =>
+        prev.map((p) =>
+          p.id === preset.id ? { ...p, active: !isCurrentlyActive } : p
+        )
+      );
+
+      // Sync with MSW core
+      if (isConnected && coreTogglePreset) {
+        coreTogglePreset(preset);
+      }
+    },
+    [activePresets, isConnected, coreTogglePreset]
+  );
+
+  const clearAllPresets = useCallback(() => {
+    // Clear local state
     setActivePresets([]);
+    setPresets((prev) => prev.map((p) => ({ ...p, active: false })));
 
-    // In real app, this would call @msw-scenarios/core:
-    // extendedHandlers.clearAllMocks();
-  };
+    // Sync with MSW core
+    if (isConnected && coreClearAll) {
+      coreClearAll();
+    }
+  }, [isConnected, coreClearAll]);
 
-  const refreshPresets = () => {
-    // In real app, this would re-fetch from @msw-scenarios/core
-    console.log('Refreshing presets...');
-  };
+  const refreshPresets = useCallback(() => {
+    if (isConnected && getCorePresets) {
+      const corePresets = getCorePresets();
+      setPresets(corePresets);
+
+      // Update active state based on what's actually active in MSW
+      const mswActivePresets = corePresets.filter((p) => p.active);
+      if (mswActivePresets.length > 0) {
+        setActivePresets(mswActivePresets);
+      }
+    }
+  }, [isConnected, getCorePresets]);
 
   return {
     presets,

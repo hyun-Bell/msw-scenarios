@@ -1,16 +1,40 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useLocalStorage } from './useLocalStorage';
+import { useCoreIntegration } from './useCoreIntegration';
 import type { ProfileInfo, PresetInfo } from '../types';
+import type { StorageData } from '../utils/storage';
 
 interface UseProfileManagerReturn {
   profiles: ProfileInfo[];
   activeProfile: ProfileInfo | null;
   switchProfile: (profileName: string) => void;
-  createProfile: (name: string) => void;
+  createProfile: (
+    name: string,
+    fromActivePresets?: PresetInfo[]
+  ) => ProfileInfo;
   deleteProfile: (name: string) => void;
+  editProfile: (oldName: string, newName: string) => void;
+  duplicateProfile: (profileName: string) => ProfileInfo | null;
+  exportProfile: (profileName: string) => string | null;
+  importProfile: (jsonString: string) => boolean;
 }
 
 export function useProfileManager(): UseProfileManagerReturn {
+  const {
+    isConnected,
+    getProfiles,
+    setActiveProfile: coreSwitchProfile,
+  } = useCoreIntegration();
+  const [storedProfiles, setStoredProfiles] = useLocalStorage(
+    'profiles',
+    [] as StorageData['profiles']
+  );
+  const [storedActiveProfile, setStoredActiveProfile] = useLocalStorage(
+    'activeProfile',
+    null as StorageData['activeProfile']
+  );
+
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [activeProfile, setActiveProfile] = useState<ProfileInfo | null>(null);
 
@@ -94,48 +118,136 @@ export function useProfileManager(): UseProfileManagerReturn {
     setActiveProfile(mockProfiles.find((p) => p.active) || null);
   }, []);
 
-  const switchProfile = (profileName: string) => {
-    const profile = profiles.find((p) => p.name === profileName);
-    if (!profile) return;
+  const switchProfile = useCallback(
+    (profileName: string) => {
+      const profile = profiles.find((p) => p.name === profileName);
+      if (!profile) return;
 
-    // Update active profile
-    setProfiles((prev) =>
-      prev.map((p) => ({ ...p, active: p.name === profileName }))
-    );
-    setActiveProfile({ ...profile, active: true });
+      // Update active profile
+      setProfiles((prev) =>
+        prev.map((p) => ({ ...p, active: p.name === profileName }))
+      );
+      setActiveProfile({ ...profile, active: true });
 
-    // In real app, this would call @msw-scenarios/core:
-    // mockProfiles.useMock(profileName);
-    console.log(`Switched to profile: ${profileName}`);
-  };
+      // Save to localStorage
+      setStoredActiveProfile(profileName);
 
-  const createProfile = (name: string) => {
-    const newProfile: ProfileInfo = {
-      name,
-      active: false,
-      presets: [],
-    };
+      // Sync with core if connected
+      if (isConnected) {
+        coreSwitchProfile(profileName);
+      }
 
-    setProfiles((prev) => [...prev, newProfile]);
+      console.log(`Switched to profile: ${profileName}`);
+    },
+    [profiles, isConnected, coreSwitchProfile, setStoredActiveProfile]
+  );
 
-    // In real app, this would call @msw-scenarios/core:
-    // const profiles = extendedHandlers.createMockProfiles(
-    //   { name, actions: ({useMock}) => { /* configure presets */ } }
-    // );
-    console.log(`Created profile: ${name}`);
-  };
+  const createProfile = useCallback(
+    (name: string, fromActivePresets?: PresetInfo[]) => {
+      const newProfile: ProfileInfo = {
+        name,
+        active: false,
+        presets: fromActivePresets || [],
+      };
 
-  const deleteProfile = (name: string) => {
-    // Don't delete if it's the active profile
-    if (activeProfile?.name === name) {
-      setActiveProfile(null);
-    }
+      const updatedProfiles = [...profiles, newProfile];
+      setProfiles(updatedProfiles);
 
-    setProfiles((prev) => prev.filter((p) => p.name !== name));
+      // Save to localStorage
+      const storageProfiles = updatedProfiles.map((p) => ({
+        name: p.name,
+        presets: p.presets.map((preset) => preset.id),
+      }));
+      setStoredProfiles(storageProfiles);
 
-    // In real app, this would call @msw-scenarios/core to cleanup
-    console.log(`Deleted profile: ${name}`);
-  };
+      console.log(`Created profile: ${name}`);
+      return newProfile;
+    },
+    [profiles, setStoredProfiles]
+  );
+
+  const deleteProfile = useCallback(
+    (name: string) => {
+      // Don't delete if it's the active profile
+      if (activeProfile?.name === name) {
+        setActiveProfile(null);
+        setStoredActiveProfile(null);
+      }
+
+      const updatedProfiles = profiles.filter((p) => p.name !== name);
+      setProfiles(updatedProfiles);
+
+      // Save to localStorage
+      const storageProfiles = updatedProfiles.map((p) => ({
+        name: p.name,
+        presets: p.presets.map((preset) => preset.id),
+      }));
+      setStoredProfiles(storageProfiles);
+
+      console.log(`Deleted profile: ${name}`);
+    },
+    [activeProfile, profiles, setStoredProfiles, setStoredActiveProfile]
+  );
+
+  const editProfile = useCallback(
+    (oldName: string, newName: string) => {
+      const updatedProfiles = profiles.map((p) =>
+        p.name === oldName ? { ...p, name: newName } : p
+      );
+      setProfiles(updatedProfiles);
+
+      // Update active profile if it was renamed
+      if (activeProfile?.name === oldName) {
+        setActiveProfile({ ...activeProfile, name: newName });
+        setStoredActiveProfile(newName);
+      }
+
+      // Save to localStorage
+      const storageProfiles = updatedProfiles.map((p) => ({
+        name: p.name,
+        presets: p.presets.map((preset) => preset.id),
+      }));
+      setStoredProfiles(storageProfiles);
+
+      console.log(`Renamed profile: ${oldName} -> ${newName}`);
+    },
+    [profiles, activeProfile, setStoredProfiles, setStoredActiveProfile]
+  );
+
+  const duplicateProfile = useCallback(
+    (profileName: string) => {
+      const profile = profiles.find((p) => p.name === profileName);
+      if (!profile) return null;
+
+      const newName = `${profile.name} (Copy)`;
+      return createProfile(newName, profile.presets);
+    },
+    [profiles, createProfile]
+  );
+
+  const exportProfile = useCallback(
+    (profileName: string): string | null => {
+      const profile = profiles.find((p) => p.name === profileName);
+      if (!profile) return null;
+
+      return JSON.stringify(profile, null, 2);
+    },
+    [profiles]
+  );
+
+  const importProfile = useCallback(
+    (jsonString: string): boolean => {
+      try {
+        const profile = JSON.parse(jsonString) as ProfileInfo;
+        createProfile(profile.name, profile.presets);
+        return true;
+      } catch (error) {
+        console.error('Failed to import profile:', error);
+        return false;
+      }
+    },
+    [createProfile]
+  );
 
   return {
     profiles,
@@ -143,5 +255,9 @@ export function useProfileManager(): UseProfileManagerReturn {
     switchProfile,
     createProfile,
     deleteProfile,
+    editProfile,
+    duplicateProfile,
+    exportProfile,
+    importProfile,
   };
 }

@@ -26,10 +26,47 @@ export interface SelectedPresetState {
 }
 
 export const presetStore = createStore<PresetState>({ presets: {} });
-export const selectedPresetStore = createStore<SelectedPresetState>({
-  selected: {},
-  currentProfile: null,
-});
+
+// selectedPresetStore에 localStorage 지속성 추가
+export const selectedPresetStore = createStore<SelectedPresetState>(
+  {
+    selected: {},
+    currentProfile: null,
+  },
+  {
+    persist: {
+      key: 'msw-scenarios-selected-presets',
+      // response 함수는 직렬화할 수 없으므로 필터링
+      serialize: (state) => {
+        const serializable = {
+          selected: Object.entries(state.selected).reduce(
+            (acc, [key, value]) => {
+              // response가 함수인 경우 제외하고 저장
+              if (typeof value.preset.response !== 'function') {
+                acc[key] = {
+                  preset: {
+                    label: value.preset.label,
+                    status: value.preset.status,
+                    // response는 저장하지 않음 (함수일 수 있음)
+                  },
+                };
+              }
+              return acc;
+            },
+            {} as Record<string, any>
+          ),
+          currentProfile: state.currentProfile,
+        };
+        return JSON.stringify(serializable);
+      },
+      deserialize: (value) => {
+        const parsed = JSON.parse(value);
+        // 복원 시 response는 나중에 실제 handler에서 가져옴
+        return parsed;
+      },
+    },
+  }
+);
 
 export const presetActions = {
   setPresets: (path: string, presets: Preset[]) => {

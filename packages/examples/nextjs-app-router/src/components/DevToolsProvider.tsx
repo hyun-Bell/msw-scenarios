@@ -8,5 +8,13 @@ export function DevToolsProvider() {
     return null;
   }
 
-  return <MswDevtools />;
+  // CSS-in-JS로 스타일 주입된 독립 실행형 DevTools
+  // MockClient를 자동으로 감지하여 연결
+  return (
+    <MswDevtools
+      defaultOpen={false}
+      position="bottom-right"
+      enableKeyboardShortcuts={true}
+    />
+  );
 }

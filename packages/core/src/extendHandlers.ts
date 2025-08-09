@@ -72,6 +72,41 @@ export function extendHandlers<const H extends readonly PresetHandler[]>(
 
   workerManager.registerHandlers([...handlers]);
 
+  // 저장된 상태 복원
+  const restoreSavedState = () => {
+    const savedState = mockingState.getCurrentStatus();
+    if (savedState && savedState.length > 0) {
+      console.log('[MSW] Restoring saved preset state...');
+      savedState.forEach((status) => {
+        const handler = handlers.find(
+          (h) => h._path === status.path && h._method === status.method
+        );
+        if (handler) {
+          const preset = handler._presets.find(
+            (p) => p.label === status.currentPreset
+          );
+          if (preset) {
+            mockingState.setSelected(status.method, pathToString(status.path), {
+              preset: {
+                label: preset.label,
+                status: preset.status,
+                response: preset.response,
+              },
+            });
+          }
+        }
+      });
+      workerManager.updateHandlers();
+      console.log('[MSW] Preset state restored successfully');
+    }
+  };
+
+  // 브라우저 환경에서만 상태 복원
+  if (typeof window !== 'undefined') {
+    // 약간의 지연 후 복원 (MSW worker 초기화 대기)
+    setTimeout(restoreSavedState, 100);
+  }
+
   handlers.forEach((handler) => {
     // Check if methods are already defined to avoid re-definition
     if (!handler.getCurrentPreset) {

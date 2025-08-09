@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MswDevtools } from '../src';
-import '../src/styles.css';
+import './styles.css';
 
 function App() {
   const [count, setCount] = React.useState(0);
@@ -129,7 +129,6 @@ function App() {
         position="bottom-right"
         defaultOpen={false}
         enableKeyboardShortcuts={true}
-        theme="auto"
       />
     </div>
   );
