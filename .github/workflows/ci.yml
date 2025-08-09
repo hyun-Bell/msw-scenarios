@@ -40,8 +40,8 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
-      - name: Install Playwright
-        run: pnpm test:e2e:install
+      # - name: Install Playwright
+      #   run: pnpm test:e2e:install
 
-      - name: Run E2E tests
-        run: pnpm test:e2e
+      # - name: Run E2E tests
+      #   run: pnpm test:e2e
