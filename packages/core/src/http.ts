@@ -47,8 +47,11 @@ function createMethodHandler<K extends HttpMethodLiteral>(
       ResponseBodyType
     >
   ): PresetHandler<ResponseBodyType, K, RequestPath, 'default'> {
-    // Wrap resolver to intercept and check for presets
-    const wrappedResolver: typeof resolver = async (info) => {
+    const wrappedResolver: ResponseResolver<
+      HttpRequestResolverExtras<Params>,
+      RequestBodyType,
+      ResponseBodyType
+    > = async (info) => {
       const pathStr = typeof path === 'string' ? path : path.toString();
       const state = mockingState.getEndpointState(method, pathStr) as
         | SelectedPreset<ResponseBodyType>
