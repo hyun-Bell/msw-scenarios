@@ -1,6 +1,6 @@
 {
   "name": "@msw-scenarios/react-devtools",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "React DevTools for MSW Scenarios - GUI interface for managing API mocking presets",
   "type": "module",
   "main": "./dist/index.js",
