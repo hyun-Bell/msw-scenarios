@@ -35,6 +35,12 @@ jobs:
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Git configured successfully"
+
       - name: Install dependencies
         run: pnpm install
 
