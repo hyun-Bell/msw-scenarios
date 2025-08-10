@@ -1,1 +1,4 @@
 tests/e2e/test-app/test-dist
+
+playwright-report
+test-results

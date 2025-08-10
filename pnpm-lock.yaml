@@ -7,13 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      immer:
-        specifier: ^10.1.1
-        version: 10.1.1
-      msw:
-        specifier: ^2.6.6
-        version: 2.6.6(@types/node@22.10.1)(typescript@5.9.2)
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.5
