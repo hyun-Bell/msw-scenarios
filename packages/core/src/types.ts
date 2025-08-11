@@ -45,6 +45,7 @@ export interface PresetBase<T = unknown> {
   readonly response: PresetResponse<T>;
 }
 
+// For backward compatibility - will be removed in next major version
 export type Preset<T = unknown> = PresetBase<T>;
 
 export interface SelectedPreset<T = unknown> {
@@ -163,13 +164,14 @@ export interface MockProfile<
   readonly actions: (handlers: MockProfileHandlers<H>) => void;
 }
 
-// Helper type to extract response type based on method and path
+// Simplified helper type to extract handler by method and path
 type ExtractHandlerByMethodAndPath<
   H extends readonly PresetHandler[],
   M extends HttpMethodLiteral,
   P extends Path,
 > = Extract<H[number], { _method: M; _path: P }>;
 
+// Direct extraction without complex chains for better performance
 type ExtractResponseByMethodAndPath<
   H extends readonly PresetHandler[],
   M extends HttpMethodLiteral,
@@ -202,8 +204,8 @@ type ExtractPresetLabels<
 // Extended Handler Types with improved type inference and narrowing
 export interface UseMockOptions<
   H extends readonly PresetHandler[],
-  M extends ExtractMethod<H[number]> = ExtractMethod<H[number]>,
-  P extends ExtractPath<H[number]> = ExtractPath<H[number]>,
+  M extends HandlerUtilsGetMethod<H[number]> = HandlerUtilsGetMethod<H[number]>,
+  P extends HandlerUtilsGetPath<H[number]> = HandlerUtilsGetPath<H[number]>,
 > {
   method: M;
   path: P;
@@ -219,15 +221,15 @@ export interface ExtendedHandlers<H extends readonly PresetHandler[]> {
   readonly handlers: H;
 
   useMock<
-    const M extends ExtractMethod<H[number]>,
-    const P extends ExtractPath<H[number]>,
+    const M extends HandlerUtilsGetMethod<H[number]>,
+    const P extends HandlerUtilsGetPath<H[number]>,
   >(
     options: UseMockOptions<H, M, P>
   ): void;
 
   useRealAPI<
-    const M extends ExtractMethod<H[number]>,
-    const P extends ExtractPath<H[number]>,
+    const M extends HandlerUtilsGetMethod<H[number]>,
+    const P extends HandlerUtilsGetPath<H[number]>,
   >(options: {
     method: M;
     path: P;
@@ -276,32 +278,31 @@ export type HandlerUtilsGetLabels<H> =
     ? L
     : never;
 
-// Legacy types for backward compatibility
-/** @deprecated */
-export type InferHandlerResponse<H> = HandlerUtilsGetResponse<H>;
-/** @deprecated */
-export type InferHandlerMethod<H> = HandlerUtilsGetMethod<H>;
-/** @deprecated */
-export type InferHandlerPath<H> = HandlerUtilsGetPath<H>;
-/** @deprecated */
-export type InferHandlerLabels<H> = HandlerUtilsGetLabels<H>;
-/** @deprecated */
-export type ExtractMethod<H> = HandlerUtilsGetMethod<H>;
-/** @deprecated */
-export type ExtractPath<H> = HandlerUtilsGetPath<H>;
-/** @deprecated */
-export type ExtractResponseType<H> = HandlerUtilsGetResponse<H>;
+// Re-export deprecated types for backward compatibility
+export type {
+  InferHandlerResponse,
+  InferHandlerMethod,
+  InferHandlerPath,
+  InferHandlerLabels,
+  ExtractMethod,
+  ExtractPath,
+  ExtractResponseType,
+} from './types.deprecated';
 
 // Runtime type guards
 export function isPresetHandler(value: unknown): value is PresetHandler {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const obj = value as Record<string, unknown>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    '_method' in value &&
-    '_path' in value &&
-    '_presets' in value &&
-    typeof (value as any)._method === 'string' &&
-    Array.isArray((value as any)._presets)
+    '_method' in obj &&
+    typeof obj._method === 'string' &&
+    '_path' in obj &&
+    typeof obj._path === 'string' &&
+    '_presets' in obj &&
+    Array.isArray(obj._presets)
   );
 }
 
@@ -313,27 +314,34 @@ export function hasPreset<L extends string>(
 }
 
 export function isMockingStatus(value: unknown): value is MockingStatus {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const obj = value as Record<string, unknown>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    'path' in value &&
-    'method' in value &&
-    'currentPreset' in value &&
-    typeof (value as any).path === 'string' &&
-    typeof (value as any).method === 'string'
+    'path' in obj &&
+    typeof obj.path === 'string' &&
+    'method' in obj &&
+    typeof obj.method === 'string' &&
+    'currentPreset' in obj &&
+    (obj.currentPreset === null || typeof obj.currentPreset === 'string')
   );
 }
 
 export function isPresetBase<T = unknown>(
   value: unknown
 ): value is PresetBase<T> {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const obj = value as Record<string, unknown>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    'label' in value &&
-    'status' in value &&
-    'response' in value &&
-    typeof (value as any).label === 'string' &&
-    typeof (value as any).status === 'number'
+    'label' in obj &&
+    typeof obj.label === 'string' &&
+    'status' in obj &&
+    typeof obj.status === 'number' &&
+    'response' in obj
   );
 }
