@@ -69,13 +69,13 @@ const userHandler = http
         id: 1,
         name: 'John Doe',
         email: 'john@example.com',
-        role: 'admin'
-      }
+        role: 'admin',
+      },
     },
     {
       label: 'error',
       status: 404,
-      response: { error: 'User not found' }
+      response: { error: 'User not found' },
     }
   );
 ```
@@ -135,20 +135,20 @@ afterAll(() => {
 handlers.useMock({
   method: 'get',
   path: '/api/user',
-  preset: 'success'
+  preset: 'success',
 });
 
 // 오류 시나리오 적용
 handlers.useMock({
   method: 'get',
   path: '/api/user',
-  preset: 'error'
+  preset: 'error',
 });
 
 // 실제 API로 전환
 handlers.useRealAPI({
   method: 'get',
-  path: '/api/user'
+  path: '/api/user',
 });
 ```
 
@@ -161,9 +161,7 @@ MSW의 `http` 객체를 확장하여 프리셋 기능을 추가합니다.
 ```typescript
 import { http } from '@msw-scenarios/core';
 
-const handler = http
-  .get('/api/endpoint', defaultResolver)
-  .presets(...presets);
+const handler = http.get('/api/endpoint', defaultResolver).presets(...presets);
 ```
 
 #### `.presets(...presets)`
@@ -282,9 +280,9 @@ const handler = http.get('/api/user', defaultResolver).presets({
   label: 'dynamic',
   status: 200,
   response: async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 지연
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // 1초 지연
     return { timestamp: Date.now(), user: 'Dynamic User' };
-  }
+  },
 });
 
 // 응답 오버라이드
@@ -295,7 +293,7 @@ handlers.useMock({
   override: ({ data }) => {
     data.name = 'Overridden Name';
     data.customField = 'Added field';
-  }
+  },
 });
 ```
 
@@ -320,7 +318,7 @@ const userHandler = http
   .get('/api/user', (): HttpResponse => {
     return HttpResponse.json<ApiResponse<User>>({
       data: { id: 0, name: '', email: '', role: 'guest' },
-      success: false
+      success: false,
     });
   })
   .presets({
@@ -331,10 +329,10 @@ const userHandler = http
         id: 1,
         name: 'John Doe',
         email: 'john@example.com',
-        role: 'admin' as const
+        role: 'admin' as const,
       },
-      success: true
-    }
+      success: true,
+    },
   });
 
 // TypeScript가 타입을 추론하고 검증합니다
@@ -345,7 +343,7 @@ handlers.useMock({
   override: ({ data }) => {
     data.data.name = 'Jane Doe'; // ✅ 타입 안전
     // data.data.invalid = true; // ❌ TypeScript 오류
-  }
+  },
 });
 ```
 
@@ -386,12 +384,12 @@ describe('API 모킹 테스트', () => {
     handlers.useMock({
       method: 'get',
       path: '/api/user',
-      preset: 'success'
+      preset: 'success',
     });
 
     const response = await fetch('/api/user');
     const data = await response.json();
-    
+
     expect(response.status).toBe(200);
     expect(data).toEqual({ id: 1, name: 'John' });
   });
@@ -400,12 +398,12 @@ describe('API 모킹 테스트', () => {
     handlers.useMock({
       method: 'get',
       path: '/api/user',
-      preset: 'error'
+      preset: 'error',
     });
 
     const response = await fetch('/api/user');
     const data = await response.json();
-    
+
     expect(response.status).toBe(500);
     expect(data).toEqual({ error: 'Server Error' });
   });
@@ -439,7 +437,7 @@ function UserProfile({ handlers, profiles }) {
   return (
     <div>
       <h3>현재 프로필: {currentProfile || '없음'}</h3>
-      
+
       <div>
         <button onClick={() => profiles.useMock('성공 상태')}>
           성공 상태
@@ -451,9 +449,9 @@ function UserProfile({ handlers, profiles }) {
           리셋
         </button>
       </div>
-      
+
       <button onClick={fetchUser}>사용자 정보 가져오기</button>
-      
+
       {user && (
         <pre>{JSON.stringify(user, null, 2)}</pre>
       )}
@@ -532,10 +530,10 @@ module.exports = {
   resolve: {
     fallback: {
       // MSW를 위한 폴백 설정
-      "path": require.resolve("path-browserify"),
-      "util": require.resolve("util/")
-    }
-  }
+      path: require.resolve('path-browserify'),
+      util: require.resolve('util/'),
+    },
+  },
 };
 ```
 

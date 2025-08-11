@@ -167,8 +167,8 @@ describe('MSW Preset Handler Tests', () => {
         preset: 'mock',
       });
 
-      let response = await fetch('http://localhost/api/users');
-      let data = await response.json();
+      const response = await fetch('http://localhost/api/users');
+      const data = await response.json();
       expect(data).toEqual({ users: [{ id: 1 }] });
 
       // Switch to real API

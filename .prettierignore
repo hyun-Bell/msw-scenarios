@@ -20,6 +20,10 @@ package-lock.json
 # Test coverage
 coverage/
 
+# Test outputs
+test-dist/
+test-results/
+
 # Environment files
 .env
 .env.local
