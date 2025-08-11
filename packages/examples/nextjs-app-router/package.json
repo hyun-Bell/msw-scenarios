@@ -1,6 +1,6 @@
 {
   "name": "@msw-scenarios/example-nextjs-app-router",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "description": "Next.js App Router example with MSW Scenarios and React DevTools",
   "scripts": {

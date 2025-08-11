@@ -1,5 +1,13 @@
 # @msw-scenarios/example-nextjs-app-router
 
+## 0.3.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @msw-scenarios/core@1.1.0
+  - @msw-scenarios/react-devtools@1.0.1
+
 ## 0.3.3
 
 ### Patch Changes
