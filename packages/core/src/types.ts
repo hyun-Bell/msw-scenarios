@@ -36,10 +36,12 @@ export type PresetResponse<T = unknown, P extends PathParams = PathParams> =
   | T
   | PresetResponseFunction<T, P>;
 
-// Core Preset Types with improved type safety
 export interface PresetBase<T = unknown> {
+  /** Unique identifier for this preset */
   readonly label: string;
+  /** HTTP status code (e.g., 200, 404, 500) */
   readonly status: number;
+  /** Response data or function that generates response */
   readonly response: PresetResponse<T>;
 }
 
@@ -65,7 +67,9 @@ export type HttpMethodHandler<M extends HttpMethodLiteral> = <
   >
 ) => PresetHandler<ResBody, M, ReqPath, 'default'>;
 
-// Simplified PresetHandler with better type inference and variance
+/**
+ * MSW handler with preset management capabilities
+ */
 export interface PresetHandler<
   out Response = unknown,
   out Method extends HttpMethodLiteral = HttpMethodLiteral,
@@ -96,7 +100,6 @@ export interface PresetHandler<
   reset(): void;
 }
 
-// HTTP Interface with const assertion for better type safety
 export interface Http {
   readonly get: HttpMethodHandler<'get'>;
   readonly post: HttpMethodHandler<'post'>;
@@ -146,15 +149,6 @@ export type HandlerInfo<H extends PresetHandler> = {
   }>;
 };
 
-// Simplified Utility Types using TypeScript 5 NoInfer
-export type ExtractMethod<H> =
-  H extends PresetHandler<any, infer M> ? M : never;
-export type ExtractPath<H> =
-  H extends PresetHandler<any, any, infer P> ? P : never;
-export type ExtractResponseType<H> =
-  H extends PresetHandler<infer R> ? R : never;
-
-// Mock Profile Types with const type parameters
 export interface MockProfileHandlers<H extends readonly PresetHandler[]> {
   readonly handlers: H;
   readonly useMock: ExtendedHandlers<H>['useMock'];
@@ -183,9 +177,9 @@ type ExtractResponseByMethodAndPath<
 > =
   ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<
     infer R,
-    any,
-    any,
-    any
+    HttpMethodLiteral,
+    Path,
+    string
   >
     ? R
     : never;
@@ -197,9 +191,9 @@ type ExtractPresetLabels<
   P extends Path,
 > =
   ExtractHandlerByMethodAndPath<H, M, P> extends PresetHandler<
-    any,
-    any,
-    any,
+    unknown,
+    HttpMethodLiteral,
+    Path,
     infer L
   >
     ? L
@@ -265,12 +259,81 @@ export interface ProfileManager<
   ): () => void;
 }
 
-// Type helper for better inference
-export type InferHandlerResponse<H> =
-  H extends PresetHandler<infer R, any, any, any> ? R : never;
-export type InferHandlerMethod<H> =
-  H extends PresetHandler<any, infer M, any, any> ? M : never;
-export type InferHandlerPath<H> =
-  H extends PresetHandler<any, any, infer P, any> ? P : never;
-export type InferHandlerLabels<H> =
-  H extends PresetHandler<any, any, any, infer L> ? L : never;
+// Type utilities - replacing duplicated Extract*/Infer* helpers
+export type HandlerUtilsGetResponse<H> =
+  H extends PresetHandler<infer R, HttpMethodLiteral, Path, string> ? R : never;
+
+export type HandlerUtilsGetMethod<H> =
+  H extends PresetHandler<unknown, infer M, Path, string> ? M : never;
+
+export type HandlerUtilsGetPath<H> =
+  H extends PresetHandler<unknown, HttpMethodLiteral, infer P, string>
+    ? P
+    : never;
+
+export type HandlerUtilsGetLabels<H> =
+  H extends PresetHandler<unknown, HttpMethodLiteral, Path, infer L>
+    ? L
+    : never;
+
+// Legacy types for backward compatibility
+/** @deprecated */
+export type InferHandlerResponse<H> = HandlerUtilsGetResponse<H>;
+/** @deprecated */
+export type InferHandlerMethod<H> = HandlerUtilsGetMethod<H>;
+/** @deprecated */
+export type InferHandlerPath<H> = HandlerUtilsGetPath<H>;
+/** @deprecated */
+export type InferHandlerLabels<H> = HandlerUtilsGetLabels<H>;
+/** @deprecated */
+export type ExtractMethod<H> = HandlerUtilsGetMethod<H>;
+/** @deprecated */
+export type ExtractPath<H> = HandlerUtilsGetPath<H>;
+/** @deprecated */
+export type ExtractResponseType<H> = HandlerUtilsGetResponse<H>;
+
+// Runtime type guards
+export function isPresetHandler(value: unknown): value is PresetHandler {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    '_method' in value &&
+    '_path' in value &&
+    '_presets' in value &&
+    typeof (value as any)._method === 'string' &&
+    Array.isArray((value as any)._presets)
+  );
+}
+
+export function hasPreset<L extends string>(
+  handler: PresetHandler,
+  label: L
+): handler is PresetHandler<unknown, HttpMethodLiteral, Path, L> {
+  return handler._presets.some((preset) => preset.label === label);
+}
+
+export function isMockingStatus(value: unknown): value is MockingStatus {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'path' in value &&
+    'method' in value &&
+    'currentPreset' in value &&
+    typeof (value as any).path === 'string' &&
+    typeof (value as any).method === 'string'
+  );
+}
+
+export function isPresetBase<T = unknown>(
+  value: unknown
+): value is PresetBase<T> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'label' in value &&
+    'status' in value &&
+    'response' in value &&
+    typeof (value as any).label === 'string' &&
+    typeof (value as any).status === 'number'
+  );
+}
